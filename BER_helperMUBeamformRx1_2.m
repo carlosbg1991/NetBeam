@@ -5,64 +5,57 @@
 %
 % Copyright 2016 The MathWorks, Inc.
 
-% Load radio configuration from a file
-if exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
-    error('MultiUserBeamformingExample must be running in a separate MATLAB session on this computer first.');
-end
-load(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'));
-
-% Connect to radio
-receiver = comm.SDRuReceiver('Platform',radioConfig.rxPlatform1,...
-                             radioConfig.rxIDProp1,radioConfig.rxID1);
-receiver.MasterClockRate = radioConfig.rxMasterClockRate1;
-receiver.DecimationFactor = radioConfig.rxDecimationfactor1;
-receiver.ClockSource = 'External'; % Synchronize transmitter and receiver in frequency
-receiver.Gain = 8;
-receiver.CenterFrequency = 900e6;
-receiver.SamplesPerFrame = 200e3;
-receiver.EnableBurstMode = true;
-receiver.NumFramesInBurst = 1;
-receiver.OutputDataType = 'double';
-
-% Radio settings
-receiver
-
-% Set up spectrum analyzer and constellation diagram
-spAnalyzer = dsp.SpectrumAnalyzer;
-spAnalyzer.SampleRate = 400e3;
-spAnalyzer.SpectralAverages = 64;
-spAnalyzer.Title = 'Receiver 1';
-spAnalyzer.YLimits = [-100 -20];
-
-% Open temporary file for writing channel estimate
-fid = fopen(fullfile(tempdir,'helperMUBeamformfeedback1.bin'),'wb');
-
-% Get Gold sequences for estimating channel response
-goldSeqRef = helperMUBeamformInitGoldSeq;
-
-% Variable to store the BER
-BER = zeros(5000,6);
-
-% Load Transmitted bits for the modulations used
-load(fullfile(tempdir,'BER_TxBits.mat'),'data');
-
-tic;
-modList = [64 32 16 8 4 2];
-% Main loop
-for i = 1:5000
+% % Load radio configuration from a file
+% if exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
+%     error('MultiUserBeamformingExample must be running in a separate MATLAB session on this computer first.');
+% end
+% load(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'));
+% 
+% % Connect to radio
+% receiver = comm.SDRuReceiver('Platform',radioConfig.rxPlatform1,...
+%                              radioConfig.rxIDProp1,radioConfig.rxID1);
+% receiver.MasterClockRate = radioConfig.rxMasterClockRate1;
+% receiver.DecimationFactor = radioConfig.rxDecimationfactor1;
+% receiver.ClockSource = 'External'; % Synchronize transmitter and receiver in frequency
+% receiver.Gain = 8;
+% receiver.CenterFrequency = 900e6;
+% receiver.SamplesPerFrame = 200e3;
+% receiver.EnableBurstMode = true;
+% receiver.NumFramesInBurst = 1;
+% receiver.OutputDataType = 'double';
+% 
+% % Radio settings
+% receiver
+% 
+% % Open temporary file for writing channel estimate
+% fid = fopen(fullfile(tempdir,'helperMUBeamformfeedback1.bin'),'wb');
+% 
+% % Get Gold sequences for estimating channel response
+% goldSeqRef = helperMUBeamformInitGoldSeq;
+% 
+% % Variable to store the BER
+% BER = zeros(5000,6);
+% 
+% % Load Transmitted bits for the modulations used
+% load(fullfile(tempdir,'BER_TxBits.mat'),'data');
+% 
+% tic;
+% maxIter = 5000;
+% modList = [64 32 16 8 4 2];
+% chTot = zeros(4,maxIter);
+% % Main loop
+for i = 1:maxIter
     elapsedTime = toc;
     [rxSig, len] = receiver();
     if len > 0
         [channelEstimate, payload] = ...
             helperMUBeamformEstimateChannel(rxSig, goldSeqRef);
-        spAnalyzer(payload);    % Plot power spectrum
         fftOut = fft(reshape(payload, 256, 64));
         
         for modIdx = 1:length(modList)
             index = 4 + modIdx;  % First 4 subcarriers contain 0's
             y = fftOut(index,:).';  % Extract Subcarrier
             y = y/sqrt(mean(y'*y));
-%             constDiagram(y);        % Plot constellation
             y = 1/sqrt(sum(var(y))).*y;  % Normalize symbols
             % Plot constellation
             figure(modIdx); clf('reset');
@@ -90,12 +83,64 @@ for i = 1:5000
         if ~any(isnan(channelEstimate))
             fwrite(fid,[real(channelEstimate) imag(channelEstimate)],'double');
         end
+        
+        chTot(:,i) = channelEstimate;
     end
     elapsedOld = elapsedTime;
     elapsedTime = toc;
-    fprintf('Total Elapsed:  %.3f\n',elapsedTime);
-    fprintf('Iteration time: %.3f\n',elapsedTime - elapsedOld);
+%     fprintf('Total Elapsed:  %.3f\n',elapsedTime);
+%     fprintf('Iteration time: %.3f\n',elapsedTime - elapsedOld);
+    fprintf('\titer %d - h_est(1): %.7f + %.7fj\n',i,real(chTot(1,i)),imag(chTot(1,i)));
 end
+
+save('sim_BER-MU_TxAll_RxAll.mat');
+
+lastIter = i;
+for idx = 1:4
+    figure(15);
+    subplot(3,4,idx); hold on; grid minor;
+    % plot((1:maxIter),real(chRealTot),'Color','b');
+    plot((1:lastIter),real(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    title('Real','FontSize',12);
+    xlabel('Iteration','FontSize',12);
+    ylabel('Gain','FontSize',12);
+    subplot(3,4,idx+4); hold on; grid minor;
+    % plot((1:maxIter),imag(chRealTot),'Color','b');
+    plot((1:lastIter),imag(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    title('Imaginary','FontSize',12);
+    xlabel('Iteration','FontSize',12);
+    ylabel('Gain','FontSize',12);
+    subplot(3,4,idx+8); hold on; grid minor;
+    plot((1:lastIter),abs(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    title('Absolute Gain','FontSize',12);
+    xlabel('Iteration','FontSize',12);
+    ylabel('Gain','FontSize',12);
+
+    figure(16);
+    subplot(4,1,idx); hold on;
+    covTot_imag = zeros(lastIter,1);
+    covTot_real = zeros(lastIter,1);
+    re = real(chTot(idx,:));
+    im = imag(chTot(idx,:));
+    re(isnan(re))=0;
+    window_size = 1;
+    for k = 1:1:lastIter-window_size
+        covTot_imag(k) = cov(im(k:k+window_size));
+        covTot_real(k) = cov(re(k:k+window_size));
+    end
+    plot(abs(1-covTot_imag),'LineWidth',2);
+    plot(abs(1-covTot_real),'LineWidth',2);
+    legend('Imaginary','Real');
+    ylim([0.999 1]);
+end
+
+figure(17);
+subplot(611); plot(abs(BER(1:i,1))); legend('64-QAM'); ylabel('BER'); ylim([0 1]);
+subplot(612); plot(abs(BER(1:i,2))); legend('32-QAM'); ylabel('BER'); ylim([0 1]);
+subplot(613); plot(abs(BER(1:i,3))); legend('16-QAM'); ylabel('BER'); ylim([0 1]);
+subplot(614); plot(abs(BER(1:i,4))); legend('8-QAM'); ylabel('BER'); ylim([0 1]);
+subplot(615); plot(abs(BER(1:i,5))); legend('QPSK'); ylabel('BER'); ylim([0 1]);
+subplot(616); plot(abs(BER(1:i,6))); legend('BPSK'); ylabel('BER'); ylim([0 1]);
 
 release(receiver);
 

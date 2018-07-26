@@ -68,9 +68,9 @@ if ~exist(fullfile(tempdir,'BER_TxBits.mat'),'file')
     M = 4;  k = log2(M);
     data_QPSK_extra = randi([0 1],64*k,2);
     % Save
-    save(fullfile(tempdir,'BER_TxBits.mat'),'data');
+    save(fullfile(tempdir,'BER_TxBits.mat'),'data','data_QPSK_extra');
 else
-    load(fullfile(tempdir,'BER_TxBits.mat'),'data');
+    load(fullfile(tempdir,'BER_TxBits.mat'),'data','data_QPSK_extra');
 end
 
 % Create 64-QAM symbols
