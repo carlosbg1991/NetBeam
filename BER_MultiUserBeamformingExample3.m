@@ -28,8 +28,9 @@ clear all; close all; clc;
 % save(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'radioConfig');
 
 % Configure experiment
-numTxAntennas = 1;  % Select between 1, 2, 3 and 4
+numTxAntennas = 4;  % Select between 1, 2, 3 and 4
 maxIter = 30000;
+gain = -10; % in dB
 
 % Load Radio configurations
 load(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'radioConfig');
@@ -59,9 +60,9 @@ transmitter = comm.SDRuTransmitter('Platform',radioConfig.txPlatform,...
                                    'InterpolationFactor',radioConfig.txInterpolationfactor,...
                                    'ChannelMapping',radioConfig.ChannelMapping,...
                                    'CenterFrequency',900e6,...
-                                   'Gain',8,...
+                                   'Gain',gain,...
                                    'ClockSource','External',...
-                                   'PPSSource','External');
+                                   'PPSSource','External')
 
 %% Construct training signals and payloads
 trainingSig = helperMUBeamformInitGoldSeq; % Based on Gold Sequences                    
@@ -180,7 +181,7 @@ for i = 1:maxIter
     
     fprintf('Iter %d - Applying channel:\n',i);
     for id = 1:numTxAntennas
-        fprintf('h = %.7f + %.7fj\t\n',real(channelEst1(1)),imag(channelEst1(1)));
+        fprintf('h = %.7f + %.7fj\t\n',real(channelEst1(id)),imag(channelEst1(id)));
     end
     fprintf('\n');
 

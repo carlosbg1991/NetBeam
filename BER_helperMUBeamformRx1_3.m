@@ -1,42 +1,46 @@
-%% Multi-User Transmit Beamforming with USRP(R) Hardware
+% Multi-User Transmit Beamforming with USRP(R) Hardware
+
+% Clear environment
+clear all; close all; clc;
 
 % Configuration
-maxIter = 110;
+maxIter = 300;
 modList = [64 32 16 8 4 2];
-nTxAntennas = 1;
+nTxAntennas = 4;
+gain = -10;
 
-% % Check for required files
-% if exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
-%     error('MultiUserBeamformingExample must be running in a separate MATLAB session on this computer first.');
-% elseif exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
-%     error('Need to run BER_MultiUserBeamformingExample first to generate tx symbols.');
-% end
-% % Load radio configuration from a file
-% load(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'));
-% % Load Transmitted bits for the modulations used
-% load(fullfile(tempdir,'BER_TxBits.mat'),'data');
-% 
-% % Connect to radio
-% receiver = comm.SDRuReceiver('Platform',radioConfig.rxPlatform1,...
-%                              radioConfig.rxIDProp1,radioConfig.rxID1,...
-%                              'MasterClockRate',radioConfig.rxMasterClockRate1,...
-%                              'DecimationFactor',radioConfig.rxDecimationfactor1,...
-%                              'ClockSource','External',...
-%                              'Gain',8,...
-%                              'CenterFrequency',900e6,...
-%                              'EnableBurstMode',true,...
-%                              'SamplesPerFrame',200e3,...
-%                              'NumFramesInBurst',1,...
-%                              'OutputDataType','double');
-%                          
-% % Open temporary file for writing channel estimate
-% fid = fopen(fullfile(tempdir,'helperMUBeamformfeedback1.bin'),'wb');
-% 
-% % Get Gold sequences for estimating channel response
-% goldSeqRef = helperMUBeamformInitGoldSeq;
-% 
-% % Variable to store the BER
-% BER = zeros(5000,6);
+% Check for required files
+if exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
+    error('MultiUserBeamformingExample must be running in a separate MATLAB session on this computer first.');
+elseif exist(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'file') == 0
+    error('Need to run BER_MultiUserBeamformingExample first to generate tx symbols.');
+end
+% Load radio configuration from a file
+load(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'));
+% Load Transmitted bits for the modulations used
+load(fullfile(tempdir,'BER_TxBits.mat'),'data');
+
+% Connect to radio
+receiver = comm.SDRuReceiver('Platform',radioConfig.rxPlatform1,...
+                             radioConfig.rxIDProp1,radioConfig.rxID1,...
+                             'MasterClockRate',radioConfig.rxMasterClockRate1,...
+                             'DecimationFactor',radioConfig.rxDecimationfactor1,...
+                             'ClockSource','External',...
+                             'Gain',gain,...
+                             'CenterFrequency',900e6,...
+                             'EnableBurstMode',true,...
+                             'SamplesPerFrame',200e3,...
+                             'NumFramesInBurst',1,...
+                             'OutputDataType','double');
+                         
+% Open temporary file for writing channel estimate
+fid = fopen(fullfile(tempdir,'helperMUBeamformfeedback1.bin'),'wb');
+
+% Get Gold sequences for estimating channel response
+goldSeqRef = helperMUBeamformInitGoldSeq;
+
+% Variable to store the BER
+BER = zeros(5000,6);
 
 tic;
 chTot = zeros(nTxAntennas,maxIter);
@@ -93,7 +97,7 @@ for i = 1:maxIter
 %     fprintf('Iteration time: %.3f\n',elapsedTime - elapsedOld);
     fprintf('Iter %d:\t',i);
     for id = 1:nTxAntennas
-        fprintf('h = %.7f + %.7fj\t',real(chTot(1,i)),imag(chTot(1,i)));
+        fprintf('h = %.7f + %.7fj\t',real(chTot(id,i)),imag(chTot(id,i)));
     end
     fprintf('\n');
 end

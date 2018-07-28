@@ -35,7 +35,7 @@ transmitter.MasterClockRate = radioConfig.txMasterClockRate;
 transmitter.InterpolationFactor = radioConfig.txInterpolationfactor;
 transmitter.ChannelMapping = [1 2 3 4];
 transmitter.CenterFrequency = 900e6;
-transmitter.Gain = 8;
+transmitter.Gain = -10;
 transmitter.ClockSource = 'External'; % Synchronize all 4 channels in frequency
 transmitter.PPSSource = 'External';   % Synchronize all 4 channels in time
 

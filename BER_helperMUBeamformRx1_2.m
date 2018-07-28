@@ -17,7 +17,7 @@ receiver = comm.SDRuReceiver('Platform',radioConfig.rxPlatform1,...
 receiver.MasterClockRate = radioConfig.rxMasterClockRate1;
 receiver.DecimationFactor = radioConfig.rxDecimationfactor1;
 receiver.ClockSource = 'External'; % Synchronize transmitter and receiver in frequency
-receiver.Gain = 8;
+receiver.Gain = -10;
 receiver.CenterFrequency = 900e6;
 receiver.SamplesPerFrame = 200e3;
 receiver.EnableBurstMode = true;
@@ -33,16 +33,17 @@ fid = fopen(fullfile(tempdir,'helperMUBeamformfeedback1.bin'),'wb');
 % Get Gold sequences for estimating channel response
 goldSeqRef = helperMUBeamformInitGoldSeq;
 
-% Variable to store the BER
-BER = zeros(5000,6);
-
 % Load Transmitted bits for the modulations used
 load(fullfile(tempdir,'BER_TxBits.mat'),'data');
 
+% Configuration
 tic;
-maxIter = 5000;
+maxIter = 300;
 modList = [64 32 16 8 4 2];
 chTot = zeros(4,maxIter);
+
+% Variable to store the BER
+BER = zeros(300,6);
 % Main loop
 for i = 1:maxIter
     elapsedTime = toc;
