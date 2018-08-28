@@ -1,4 +1,4 @@
-function f_transmit(transmitter)
+function f_transmit(transmitter,txSig)
 
 transmitter(txSig);
 
