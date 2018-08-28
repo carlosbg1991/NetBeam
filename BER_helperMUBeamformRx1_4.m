@@ -12,7 +12,7 @@ gain = -10;
 % Load radio configuration from a file
 load(fullfile('data','radioConfig.mat'));
 % Load Transmitted bits for the modulations used
-load(fullfile('data','information.mat'),'bits','payload');
+load(fullfile('data','information.mat'),'bits','symbols','idxFFT');
 % Load pre-defined Gold sequences
 load('data/trainingSig.mat','trainingSig');
 
@@ -45,12 +45,11 @@ for i = 1:maxIter
     if len > 0
         [channelEstimate, payload_rx] = ...
             BER_helperMUBeamformEstimateChannel(rxSig, trainingSig, nTxAntennas);
-        fftOut = fft(reshape(payload_rx, 256, 64));
+        fftOut = fft(reshape(payload_rx, NFFT, 64));
         
         for modIdx = 1:length(modList)
-            index = 4 + modIdx;  % First 4 subcarriers contain 0's
-            y = fftOut(index,:).';  % Extract Subcarrier
-            y = y/sqrt(mean(y'*y));
+            y = fftOut(idxFFT(:,modIdx)).';  % Extract Subcarrier
+            y = y/sqrt(mean(y'*y));  % Normalize symbols
             y = 1/sqrt(sum(var(y))).*y;  % Normalize symbols
 %             % Plot constellation
 %             figure(modIdx); clf('reset');
@@ -97,32 +96,32 @@ end
 save('sim_BER-exp2ant.mat');
 
 lastIter = i;
-for idx = 1:nTxAntennas
+for idxFFT = 1:nTxAntennas
     figure(15);
-    subplot(nTxAntennas,3,3*(idx-1) + 1); hold on; grid minor;
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 1); hold on; grid minor;
     % plot((1:maxIter),real(chRealTot),'Color','b');
-    plot((1:lastIter),real(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    plot((1:lastIter),real(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Real','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idx-1) + 2); hold on; grid minor;
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 2); hold on; grid minor;
     % plot((1:maxIter),imag(chRealTot),'Color','b');
-    plot((1:lastIter),imag(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    plot((1:lastIter),imag(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Imaginary','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idx-1) + 3); hold on; grid minor;
-    plot((1:lastIter),abs(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 3); hold on; grid minor;
+    plot((1:lastIter),abs(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Absolute Gain','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
 
     figure(16);
-    subplot(4,1,idx); hold on;
+    subplot(4,1,idxFFT); hold on;
     covTot_imag = zeros(lastIter,1);
     covTot_real = zeros(lastIter,1);
-    re = real(chTot(idx,:));
-    im = imag(chTot(idx,:));
+    re = real(chTot(idxFFT,:));
+    im = imag(chTot(idxFFT,:));
     re(isnan(re))=0;
     window_size = 1;
     for k = 1:1:lastIter-window_size
