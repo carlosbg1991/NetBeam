@@ -1,16 +1,18 @@
-% Clear environment
+%% Clear environment
 clear all; close all; clc;
 
-% Configuration
+%% Configuration
 maxIter = 300;
 modList = [64 32 16 8 4 2];
 nTxAntennas = 4;
 gain = -10;
 
+%% Configure radios
+
 % Load radio configuration from a file
 load(fullfile('data','radioConfig.mat'));
 % Load Transmitted bits for the modulations used
-load(fullfile('data','information.mat'),'bits','payload');
+load(fullfile('data','information.mat'),'bits','symbols','idxFFT');
 % Load pre-defined Gold sequences
 load('data/trainingSig.mat','trainingSig');
 
@@ -34,31 +36,30 @@ fid = fopen(fileName,'wb');
 % Variable to store the BER
 BER = zeros(maxIter,length(modList));
 
+%% Main loop
 tic;
 chTot = zeros(nTxAntennas,maxIter);
-% Main loop
 for i = 1:maxIter
     elapsedTime = toc;
     [rxSig, len] = receiver();
     if len > 0
         [channelEstimate, payload_rx] = ...
             BER_helperMUBeamformEstimateChannel(rxSig, trainingSig, nTxAntennas);
-        fftOut = fft(reshape(payload_rx, 256, 64));
+        fftOut = fft(reshape(payload_rx, NFFT, 64));
         
         for modIdx = 1:length(modList)
-            index = 4 + modIdx;  % First 4 subcarriers contain 0's
-            y = fftOut(index,:).';  % Extract Subcarrier
-            y = y/sqrt(mean(y'*y));
+            y = fftOut(idxFFT(:,modIdx)).';  % Extract Subcarrier
+            y = y/sqrt(mean(y'*y));  % Normalize symbols
             y = 1/sqrt(sum(var(y))).*y;  % Normalize symbols
-            % Plot constellation
-            figure(modIdx); clf('reset');
-            figure(modIdx); hold on;
-            y_tx = qammod(bits{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
-            plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
-            plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
-            xlim([-2 2]);  ylim([-2 2]);  % Normalized
-            tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
-            title(tit{1},'FontSize',12);
+%             % Plot constellation
+%             figure(modIdx); clf('reset');
+%             figure(modIdx); hold on;
+%             y_tx = qammod(bits{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
+%             plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
+%             plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
+%             xlim([-2 2]);  ylim([-2 2]);  % Normalized
+%             tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
+%             title(tit{1},'FontSize',12);
             % Compute Bit Error Rate for the 64-QAM modulation
             if ~isempty(y) && ~any(isnan(y))
                 % Demodulator expecting normalized symbols
@@ -95,32 +96,32 @@ end
 save('sim_BER-exp2ant.mat');
 
 lastIter = i;
-for idx = 1:nTxAntennas
+for idxFFT = 1:nTxAntennas
     figure(15);
-    subplot(nTxAntennas,3,3*(idx-1) + 1); hold on; grid minor;
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 1); hold on; grid minor;
     % plot((1:maxIter),real(chRealTot),'Color','b');
-    plot((1:lastIter),real(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    plot((1:lastIter),real(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Real','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idx-1) + 2); hold on; grid minor;
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 2); hold on; grid minor;
     % plot((1:maxIter),imag(chRealTot),'Color','b');
-    plot((1:lastIter),imag(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    plot((1:lastIter),imag(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Imaginary','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idx-1) + 3); hold on; grid minor;
-    plot((1:lastIter),abs(chTot(idx,1:lastIter)),'Color','r','LineWidth',2);
+    subplot(nTxAntennas,3,3*(idxFFT-1) + 3); hold on; grid minor;
+    plot((1:lastIter),abs(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
     title('Absolute Gain','FontSize',12);
     xlabel('Iteration','FontSize',12);
     ylabel('Gain','FontSize',12);
 
     figure(16);
-    subplot(4,1,idx); hold on;
+    subplot(4,1,idxFFT); hold on;
     covTot_imag = zeros(lastIter,1);
     covTot_real = zeros(lastIter,1);
-    re = real(chTot(idx,:));
-    im = imag(chTot(idx,:));
+    re = real(chTot(idxFFT,:));
+    im = imag(chTot(idxFFT,:));
     re(isnan(re))=0;
     window_size = 1;
     for k = 1:1:lastIter-window_size

@@ -57,12 +57,12 @@ else
     % Subcarrier 5 uses 64-QAM. Each point of 64-QAM is used once. Other
     % subcarriers use QPSK
     modOut1 = [zeros(4,64);       % Zero padding
-               symbols{1};         % 64-QAM - 1 subcarrier
-               symbols{2};         % 32-QAM - 1 subcarrier
-               symbols{3};         % 16-QAM - 1 subcarrier
-               symbols{4};          % 8-QAM  - 1 subcarrier
-               symbols{5};          % QPSK   - 1 subcarrier
-               symbols{6};          % BPSK   - 1 subcarrier
+               symbols{1};        % 64-QAM - 1 subcarrier
+               symbols{2};        % 32-QAM - 1 subcarrier
+               symbols{3};        % 16-QAM - 1 subcarrier
+               symbols{4};        % 8-QAM  - 1 subcarrier
+               symbols{5};        % QPSK   - 1 subcarrier
+               symbols{6};        % BPSK   - 1 subcarrier
                sym_QPSK_extra;    % QPSK   - 1 subcarrier - Extra
                zeros(256-4-8,64)]; % Zero padding
     payload = reshape(ifft(modOut1),[],1);
