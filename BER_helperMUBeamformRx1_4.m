@@ -1,11 +1,13 @@
-% Clear environment
+%% Clear environment
 clear all; close all; clc;
 
-% Configuration
+%% Configuration
 maxIter = 300;
 modList = [64 32 16 8 4 2];
 nTxAntennas = 4;
 gain = -10;
+
+%% Configure radios
 
 % Load radio configuration from a file
 load(fullfile('data','radioConfig.mat'));
@@ -34,9 +36,9 @@ fid = fopen(fileName,'wb');
 % Variable to store the BER
 BER = zeros(maxIter,length(modList));
 
+%% Main loop
 tic;
 chTot = zeros(nTxAntennas,maxIter);
-% Main loop
 for i = 1:maxIter
     elapsedTime = toc;
     [rxSig, len] = receiver();
@@ -50,15 +52,15 @@ for i = 1:maxIter
             y = fftOut(index,:).';  % Extract Subcarrier
             y = y/sqrt(mean(y'*y));
             y = 1/sqrt(sum(var(y))).*y;  % Normalize symbols
-            % Plot constellation
-            figure(modIdx); clf('reset');
-            figure(modIdx); hold on;
-            y_tx = qammod(bits{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
-            plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
-            plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
-            xlim([-2 2]);  ylim([-2 2]);  % Normalized
-            tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
-            title(tit{1},'FontSize',12);
+%             % Plot constellation
+%             figure(modIdx); clf('reset');
+%             figure(modIdx); hold on;
+%             y_tx = qammod(bits{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
+%             plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
+%             plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
+%             xlim([-2 2]);  ylim([-2 2]);  % Normalized
+%             tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
+%             title(tit{1},'FontSize',12);
             % Compute Bit Error Rate for the 64-QAM modulation
             if ~isempty(y) && ~any(isnan(y))
                 % Demodulator expecting normalized symbols
