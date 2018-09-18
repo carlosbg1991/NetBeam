@@ -1,12 +1,14 @@
 %% Clear environment
-clear all; close all; clc;
+clear all; clear classes; close all; clc;
 
 %% Configuration
-maxIter = 300;
-modList = [64 32 16 8 4 2];
-nTxAntennas = 4;
-gain = 20;
-NFFT = 256;
+maxIter      = 3000;
+modList      = [64 32 16 8 4 2];
+nTxAntennas1 = 1;
+nTxAntennas2 = 1;
+nTxAntennas  = nTxAntennas1 + nTxAntennas2;
+gain         = 20;
+NFFT         = 256;
 
 %% Configure radios
 
@@ -39,24 +41,32 @@ BER = zeros(maxIter,length(modList));
 fileName = 'helperMUBeamformfeedback1.bin';
 fid = fopen(fileName,'wb');
 
-%% Main loop
+%% Main loopif nargin == 2
+
 tic;
 chTot = zeros(nTxAntennas,maxIter);
 for i = 1:maxIter
     elapsedTime = toc;
-    
     [rxSig, len] = receiver();
     if len > 0
-        [channelEstimate, payload_rx] = ...
-            BER_helperMUBeamformEstimateChannel(rxSig, trainingSig, nTxAntennas);
+        [chEst, payload_rx, finalCorrectionTime] = ...
+            BER_helperMUBeamformEstimateChannel_2(rxSig, trainingSig, nTxAntennas1, nTxAntennas2);
         fftOut = fft(reshape(payload_rx, NFFT, 64));
+        
+        if finalCorrectionTime>48340
+            countCorr = 1;
+            finalCorrectionTime = [0 0];
+            fprintf('System needs to be corrected by %d and %d samples\n',finalCorrectionTime);
+        elseif finalCorrectionTime>0
+            fprintf('System needs to be corrected by %d and %d samples\n',finalCorrectionTime);
+        end
         
         for modIdx = 1:length(modList)
             index = 4 + modIdx;
             y = fftOut(index,:).';  % Extract Subcarrier
             y = y/sqrt(mean(y'*y));  % Normalize symbols
             y = 1/sqrt(sum(var(y))).*y;  % Normalize symbols
-%             % Plot constellation
+%             % Plot conste\nllation
 %             figure(modIdx); clf('reset');
 %             figure(modIdx); hold on;
 %             y_tx = qammod(bits{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
@@ -67,12 +77,12 @@ for i = 1:maxIter
 %             title(tit{1},'FontSize',12);
             % Compute Bit Error Rate for the 64-QAM modulation
             if ~isempty(y) && ~any(isnan(y))
-                % Demodulator expecting normalized symbols
-                M = modList(modIdx);
-                data_rx = qamdemod(y,M,'OutputType','bit','UnitAveragePower',true);
-                % Compute BER
-                BER(i,modIdx) = sum(abs(bits{modIdx} - data_rx))/length(data_rx);
-                fprintf('Iter %d - BER: %.3f\n',i,BER(i,modIdx));
+                    % Demodulator expecting normalized symbols
+                    M = modList(modIdx);
+                    data_rx = qamdemod(y,M,'OutputType','bit','UnitAveragePower',true);
+                    % Compute BER
+                    BER(i,modIdx) = sum(abs(bits{modIdx} - data_rx))/length(data_rx);
+                    fprintf('Iter %d - BER: %.3f\n',i,BER(i,modIdx));
             else
                 BER(i,modIdx) = BER(i-1,modIdx);  % First element is the BER
                 fprintf('Iter %d - BER: %.3f (Hardcoded)\n',i,BER(i,modIdx));
@@ -81,21 +91,30 @@ for i = 1:maxIter
         
         % Write channel estimate to a file
         fseek(fid,0,'bof');
-        if ~any(isnan(channelEstimate))
-            fwrite(fid,[real(channelEstimate) imag(channelEstimate)],'double');
+        if ~any(isnan(chEst)) && length(chEst)==nTxAntennas
+            % Write to file and transmit to TX-hosts using Python
+            fwrite(fid,[real(chEst(1:nTxAntennas1)) imag(chEst(1:nTxAntennas1)) ...  % 1st TX
+                        finalCorrectionTime(1) ...   % Correction time for 1st TX
+                        real(chEst(nTxAntennas1+1:nTxAntennas)) imag(chEst(nTxAntennas1+1:nTxAntennas)) ... % 2nd TX
+                        finalCorrectionTime(2)],...  % Correction time for 2 TX
+                        'double');
+            % Store estimation in global variable
+            chTot(:,i) = chEst;
+            % Print out the estimation
+            fprintf('Iter %d:\n',i);
+            for id = 1:nTxAntennas1
+                fprintf('h1(%d) = %.7f + %.7fj\t',id,real(chEst(id)),imag(chEst(id)));
+            end
+            fprintf('\n');
+            for id = nTxAntennas1+1:nTxAntennas
+                fprintf('h2(%d) = %.7f + %.7fj\t',id,real(chEst(id)),imag(chEst(id)));
+            end
+            fprintf('\n');
         end
-        
-        chTot(:,i) = channelEstimate;
+
     end
     elapsedOld = elapsedTime;
     elapsedTime = toc;
-%     fprintf('Total Elapsed:  %.3f\n',elapsedTime);
-%     fprintf('Iteration time: %.3f\n',elapsedTime - elapsedOld);
-    fprintf('Iter %d:\t',i);
-    for id = 1:nTxAntennas
-        fprintf('h = %.7f + %.7fj\t',real(chTot(id,i)),imag(chTot(id,i)));
-    end
-    fprintf('\n');
 end
 
 save('sim_BER-exp2ant.mat');

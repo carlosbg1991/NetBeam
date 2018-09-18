@@ -6,7 +6,7 @@ clear all; close all; clc;
 % Configuration
 maxIter = 300;
 modList = [64 32 16 8 4 2];
-nTxAntennas = 4;
+nTxAntennas = 2;
 gain = -10;
 
 % Check for required files
@@ -62,14 +62,14 @@ for i = 1:maxIter
 %             [y,~] = freqComp(y);  % Compensate for Frequency offset
 %             y = iqImbComp(y);  % Compensate for IQ Imbalance
             % Plot constellation
-            figure(modIdx); clf('reset');
-            figure(modIdx); hold on;
-            y_tx = qammod(data{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
-            plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
-            plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
-            xlim([-2 2]);  ylim([-2 2]);  % Normalized
-            tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
-            title(tit{1},'FontSize',12);
+%             figure(modIdx); clf('reset');
+%             figure(modIdx); hold on;
+%             y_tx = qammod(data{modIdx},modList(modIdx),'InputType','bit','UnitAveragePower',true);
+%             plot(real(y_tx),imag(y_tx),'LineStyle','None','Marker','.','Color','r');
+%             plot(real(y),imag(y),'LineStyle','None','Marker','.','Color','b');
+%             xlim([-2 2]);  ylim([-2 2]);  % Normalized
+%             tit = strcat('Receiver with k =',{' '},num2str(modList(modIdx)));
+%             title(tit{1},'FontSize',12);
             % Compute Bit Error Rate for the 64-QAM modulation
             if ~isempty(y) && ~any(isnan(y))
                 % Demodulator expecting normalized symbols
