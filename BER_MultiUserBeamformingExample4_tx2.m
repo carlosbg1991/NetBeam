@@ -1,38 +1,32 @@
-function BER_MultiUserBeamformingExample5()
-% Multi-User Beamforming transmitter with the following features: 
+% function BER_MultiUserBeamformingExample4_tx2(varargin)
+% Multi-User Beamforming transmitter with the following features:
 % - Local file to store the channel estimation.
-% - Several subcarriers can be config for data with NFFT, Ndc and Nedge.
+% - Only 6 subcarriers are used for data transmision.
 % - The number of antennas and gain are variable.
 
 %% Configure experiment
-if (nargin==7)
-    numTxAntennas = varargin{1};
-    maxIter       = varargin{2};
-    gain          = varargin{3};
-    fileName      = varargin{4};
-    NFFT          = varargin{5};
-    Ndc           = varargin{6};
-    Nedge         = varargin{7};
-elseif (nargin==0)
-    numTxAntennas = 4;  % Select between 1, 2 and 4
+% if (nargin==4)
+%     numTxAntennas = varargin{1};
+%     maxIter       = varargin{2};
+%     gain          = varargin{3};
+%     fileName      = varargin{4};
+% elseif (nargin==0)
+    numTxAntennas = 1;  % Select between 1, 2 and 4
     maxIter       = 30000;  % Maximum transmissions over the air
-    gain          = -10; % in dB
-    fileName      = 'data/channelEstimation.bin';  % File location for channel estimation
-    NFFT          = 256;  % Point for the FFT (OFDM modulator)
-    Ndc           = 6;  % Zero padding for central frequencies
-    Nedge         = 10;  % Zero padding for the edges (multipath effect)
-else
-    error('ERROR: The number of input arguments mismatch the expected.\n');
-end
+    gain          = 0; % in dB
+    fileName      = 'weights_tx2.bin';  % File location for channel estimation
+% else
+%     error('ERROR: The number of input arguments mismatch the expected.\n');
+% end
 
 %% Configure radios
 
 % Load Radio configurations
 load(fullfile('data','radioConfig.mat'),'radioConfig');
 
-% Configure transmitters
+% Configure transmitters - TX2 connects with 192.168.110.2
 txIPAvail = split(radioConfig.txIPAddrs,',');
-txIPAvail = {txIPAvail{2},txIPAvail{1}}.';
+% txIPAvail = {txIPAvail{2},txIPAvail{1}}.';
 switch numTxAntennas
     case 1
         radioConfig.ChannelMapping = 1;  % Use only 1 antenna
@@ -69,10 +63,11 @@ else
     % Load pre-defined Gold sequences
     load(fullfile('data','trainingSig.mat'),'trainingSig');
 end
-trainingSig = trainingSig(:,1:numTxAntennas);  % Store only the ones being used
+% TX 2 sends the 3rd and 4th Gold Sequences
+trainingSig = trainingSig(:,2+1:2+numTxAntennas);
 
 %% Create data
-if ~exist(fullfile('data','information.mat'),'file')
+if ~exist(fullfile('data','information4.mat'),'file')
     M = 64;  k = log2(M);  % 64QAM
     bits{1} = randi([0 1],64*k,1);
     M = 32;  k = log2(M);  % 32QAM
@@ -86,67 +81,40 @@ if ~exist(fullfile('data','information.mat'),'file')
     M = 2;  k = log2(M);  % BPSK
     bits{6} = randi([0 1],64*k,1);
     
+    % Create 64-QAM symbols
     symbols(1,:) = qammod(bits{1},64,'InputType','bit','UnitAveragePower',true).';  % 64QAM
     symbols(2,:) = qammod(bits{2},32,'InputType','bit','UnitAveragePower',true).';  % 32QAM
     symbols(3,:) = qammod(bits{3},16,'InputType','bit','UnitAveragePower',true).';  % 16QAM
-    symbols(4,:)= qammod(bits{4},8,'InputType','bit','UnitAveragePower',true).';  % 8QAM
-    symbols(5,:)= qammod(bits{5},4,'InputType','bit','UnitAveragePower',true).';  % QPSK
-    symbols(6,:)= qammod(bits{6},2,'InputType','bit','UnitAveragePower',true).';  % BPSK
-    
-    %% Construct payload 1:
+    symbols(4,:) = qammod(bits{4},8,'InputType','bit','UnitAveragePower',true).';  % 8QAM
+    symbols(5,:) = qammod(bits{5},4,'InputType','bit','UnitAveragePower',true).';  % QPSK
+    symbols(6,:) = qammod(bits{6},2,'InputType','bit','UnitAveragePower',true).';  % BPSK
+
+    % Construct payload 1:
     % 64 symbols with IFFT length of 256
     % Each symbol uses 8 subcarriers
     % Subcarrier 5 uses 64-QAM. Each point of 64-QAM is used once.
     % Other subcarriers use QPSK
-    BlockSize = (NFFT/2) - (Ndc/2) - Nedge;
-    rep = floor(BlockSize/6);
-    modOut1 = zeros(NFFT,64);
-    idxFFT(:,1) = [(Ndc/2)+0*rep+1:(Ndc/2)+1*rep (NFFT/2)+0*rep+1:(NFFT/2)+1*rep];  % 64QAM
-    idxFFT(:,2) = [(Ndc/2)+1*rep+1:(Ndc/2)+2*rep (NFFT/2)+1*rep+1:(NFFT/2)+2*rep];  % 32QAM
-    idxFFT(:,3) = [(Ndc/2)+2*rep+1:(Ndc/2)+3*rep (NFFT/2)+2*rep+1:(NFFT/2)+3*rep];  % 16QAM
-    idxFFT(:,4) = [(Ndc/2)+3*rep+1:(Ndc/2)+4*rep (NFFT/2)+3*rep+1:(NFFT/2)+4*rep];  % 8QAM
-    idxFFT(:,5) = [(Ndc/2)+4*rep+1:(Ndc/2)+5*rep (NFFT/2)+4*rep+1:(NFFT/2)+5*rep];  % QPSK
-    idxFFT(:,6) = [(Ndc/2)+5*rep+1:(Ndc/2)+6*rep (NFFT/2)+5*rep+1:(NFFT/2)+6*rep];  % BPSK
-    modOut1(idxFFT(:,1),:) = repmat(symbols(1,:),2*rep,1);
-    modOut1(idxFFT(:,2),:) = repmat(symbols(2,:),2*rep,1);
-    modOut1(idxFFT(:,3),:) = repmat(symbols(3,:),2*rep,1);
-    modOut1(idxFFT(:,4),:)  = repmat(symbols(4,:),2*rep,1);
-    modOut1(idxFFT(:,5),:)  = repmat(symbols(5,:),2*rep,1);
-    modOut1(idxFFT(:,6),:)  = repmat(symbols(6,:),2*rep,1);
-    % OFDM Modulation and append OFDM blocks to create time frame
-    payload = reshape(ifft(modOut1),[],1);
+    modOut1 = [zeros(4,64);       % Zero padding
+               symbols(1,:);         % 64-QAM - 1 subcarrier
+               symbols(2,:);         % 32-QAM - 1 subcarrier
+               symbols(3,:);         % 16-QAM - 1 subcarrier
+               symbols(4,:);          % 8-QAM - 1 subcarrier
+               symbols(5,:);          % QPSK - 1 subcarrier
+               symbols(6,:);          % BPSK - 1 subcarrier
+               zeros(256-4-6,64)]; % Zero padding
+    payload1 = reshape(ifft(modOut1),[],1);
     % Scale time-domain signal appropriately
-    payload = payload/max(real(payload))*0.5;
-    
-    % Set up spectrum analyzer and constellation diagram
-    spAnalyzer = dsp.SpectrumAnalyzer;
-    spAnalyzer.SampleRate = 400e3;
-    spAnalyzer.SpectralAverages = 64;
-    spAnalyzer.Title = 'Receiver 1';
-    spAnalyzer.YLimits = [-100 -20];
-
+    payload1 = payload1/max(real(payload1))*0.5;
     % Save
-    bits{1} = repmat(bits{1},2*rep,1);
-    bits{2} = repmat(bits{1},2*rep,1);
-    bits{3} = repmat(bits{1},2*rep,1);
-    bits{4} = repmat(bits{1},2*rep,1);
-    bits{5} = repmat(bits{1},2*rep,1);
-    bits{6} = repmat(bits{1},2*rep,1);
-    save(fullfile('data','information.mat'),'bits','symbols','idxFFT');
+    save(fullfile('data','information4.mat'),'bits','symbols','payload1');
 else
-    load(fullfile('data','information.mat'),'bits','symbols','idxFFT');
+    load(fullfile('data','information4.mat'),'bits','symbols','payload1');
 end
 
 %% Initialize variables and temporary files for channel feedback
-
-% Initialize channel estimate randomly - create file
-fid = fopen(fileName,'wb');
-chEst_prelim = rand(1,numTxAntennas) + 1j*rand(1,numTxAntennas);
-fwrite(fid,[real(chEst_prelim) imag(chEst_prelim)],'double');
-fclose(fid);
-
 % Open file to share channel estimation(read only)
 fid1 = fopen(fileName,'rb');
+lastFeedback1 = randn(1,numTxAntennas) + 1i.*randn(1,numTxAntennas);
 
 %% Main loop
 
@@ -154,17 +122,28 @@ disp('Sending ONE payload to ONE receivers simultaneously in the same frequency 
 disp('Channel estimates from the receiver are used continuously to update the transmitted beams.')
 disp('Please run helperMUBeamformRx1_3 in A SEPARATE MATLAB sessions on this computer.')
 
+currentCorrect = 0;
+timeCorrect_old = 0;
 for i = 1:maxIter
     fseek(fid1,0,'bof'); % Read from the beginning of the file
     % The channel between 4 TX antennas and 1 RX antenna is modeled
     % by 4 complex gains. This approximation works because the
     % signal has very narrow bandwidth (400k samples per second).
-    channelEst1 = fread(fid1,numTxAntennas*2,'double');
-    if length(channelEst1) == numTxAntennas*2
+    myReading = fread(fid1,numTxAntennas*2 + 1,'double');
+
+    if length(myReading) == numTxAntennas*2
         % File content has expected length
-        channelEst1 = (   channelEst1(1:numTxAntennas) + ...
-                       1j*channelEst1(numTxAntennas+1:numTxAntennas*2)).';
+        channelEst1 = (   myReading(1:numTxAntennas) + ...
+                       1j*myReading(numTxAntennas+1:numTxAntennas*2)).';
         lastFeedback1 = channelEst1;
+    elseif length(myReading) == numTxAntennas*2 + 1
+        % File content has expected length
+        channelEst1 = (   myReading(1:numTxAntennas) + ...
+                       1j*myReading(numTxAntennas+1:numTxAntennas*2)).';
+        lastFeedback1 = channelEst1;
+        % Time correction included in feedback
+        timeCorrect = myReading(end);
+        fprintf('Correction received: %d samples\n',timeCorrect);
     else
         % Use last feedback
         channelEst1 = lastFeedback1;
@@ -178,7 +157,7 @@ for i = 1:maxIter
     beamWeight1 = beamWeight1 ./ phaseCorrection1;
 
     % Beamforming for payload
-    payload = payload*beamWeight1;
+    payload = payload1*beamWeight1;
     
     fprintf('Iter %d - Applying channel:\n',i);
     for id = 1:numTxAntennas
@@ -186,9 +165,38 @@ for i = 1:maxIter
     end
     fprintf('\n');
 
-    % Send signals to the radios
+    % Generate Frame
     txSig = [trainingSig; zeros(400,numTxAntennas); payload; zeros(100,numTxAntennas)] * 0.2;
+    
+    % Correcting signal
+    pad = size(txSig,1);
+    if timeCorrect > pad
+        % Most likely the receiver only detected one TX
+        timeCorrect = 0;
+        fprintf('Only one transmission detected\n');
+    elseif abs(timeCorrect-currentCorrect)<5 || abs(timeCorrect_old-timeCorrect)<5
+        % This is an eco, the transmitter hasn't had time to correct it
+        timeCorrect = 0;
+        fprintf('OK. ECO at reception. Letting the TX recover...\n');
+    elseif timeCorrect + currentCorrect > pad
+        % The receiver detected both transmissions, the correction is
+        % within boundaries but we have exceeded the maximum tolerance of
+        % "pad" samples
+        timeCorrect = 0;
+        currentCorrect = 0;  % Reset the current correction
+        fprintf('Resetting correction (demanded >= 33k samples)\n');
+    else
+        currentCorrect = currentCorrect + timeCorrect;
+        fprintf('OK. Everything normal\n');
+    end
+    fprintf('Final Correction: %d samples\n',currentCorrect);
+    txSig = [zeros(currentCorrect,numTxAntennas) ; txSig ; zeros(pad - currentCorrect,numTxAntennas)];
+
+    % Send signal
     transmitter(txSig);
 end
 
 release(transmitter);  % Release the System Object for future use
+
+
+% EOF
