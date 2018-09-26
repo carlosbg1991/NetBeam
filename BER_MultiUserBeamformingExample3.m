@@ -28,8 +28,8 @@ clear all; close all; clc;
 % save(fullfile(tempdir,'helperMUBeamformRadioConfig.mat'),'radioConfig');
 
 % Configure experiment
-numTxAntennas = 4;  % Select between 1, 2, 3 and 4
-maxIter = 30000;
+numTxAntennas = 2;  % Select between 1, 2, 3 and 4
+maxIter = 10;
 gain = -10; % in dB
 
 % Load Radio configurations

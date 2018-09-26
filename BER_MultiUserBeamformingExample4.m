@@ -1,16 +1,29 @@
-%% Clear environment
-clear all; close all; clc;
+function BER_MultiUserBeamformingExample4(varargin)
+% Multi-User Beamforming transmitter with the following features:
+% - Local file to store the channel estimation.
+% - Only 6 subcarriers are used for data transmision.
+% - The number of antennas and gain are variable.
 
 %% Configure experiment
-fileName = 'data/channelEstimation.bin';  % File location for channel estimation
-numTxAntennas = 4;  % Select between 1, 2 and 4
-maxIter = 30000;  % Maximum transmissions over the air
-gain = -10; % in dB
+if (nargin==4)
+    numTxAntennas = varargin{1};
+    maxIter       = varargin{2};
+    gain          = varargin{3};
+    fileName      = varargin{4};
+elseif (nargin==0)
+    numTxAntennas = 4;  % Select between 1, 2 and 4
+    maxIter       = 30000;  % Maximum transmissions over the air
+    gain          = 0; % in dB
+    fileName      = 'mierda.bin';  % File location for channel estimation (decentralized)
+%     fileName      = 'helperMUBeamformfeedback1.bin';  % File location for channel estimation (centralized)
+else
+    error('ERROR: The number of input arguments mismatch the expected.\n');
+end
 
 %% Configure radios
 
 % Load Radio configurations
-load(fullfile('data','radioConfig.mat'));
+load(fullfile('data','radioConfig.mat'),'radioConfig');
 
 % Configure transmitters
 txIPAvail = split(radioConfig.txIPAddrs,',');
@@ -54,36 +67,27 @@ end
 trainingSig = trainingSig(:,1:numTxAntennas);  % Store only the ones being used
 
 %% Create data
-if ~exist(fullfile('data','information.mat'),'file')
+if ~exist(fullfile('data','information4.mat'),'file')
     M = 64;  k = log2(M);  % 64QAM
-    data{1} = randi([0 1],64*k,1);
+    bits{1} = randi([0 1],64*k,1);
     M = 32;  k = log2(M);  % 32QAM
-    data{2} = randi([0 1],64*k,1);
+    bits{2} = randi([0 1],64*k,1);
     M = 16;  k = log2(M);  % 16QAM
-    data{3} = randi([0 1],64*k,1);
+    bits{3} = randi([0 1],64*k,1);
     M = 8;  k = log2(M);  % 8QAM
-    data{4} = randi([0 1],64*k,1);
+    bits{4} = randi([0 1],64*k,1);
     M = 4;  k = log2(M);  % QPSK
-    data{5} = randi([0 1],64*k,1);
+    bits{5} = randi([0 1],64*k,1);
     M = 2;  k = log2(M);  % BPSK
-    data{6} = randi([0 1],64*k,1);
-    M = 4;  k = log2(M);  % BPSK - extra
-    data_QPSK_extra = randi([0 1],64*k,2);
+    bits{6} = randi([0 1],64*k,1);
     
     % Create 64-QAM symbols
-    sym_64QAM = qammod(data{1},64,'InputType','bit','UnitAveragePower',true).';
-    % Create 32-QAM symbols
-    sym_32QAM = qammod(data{2},32,'InputType','bit','UnitAveragePower',true).';
-    % Create 16-QAM symbols
-    sym_16QAM = qammod(data{3},16,'InputType','bit','UnitAveragePower',true).';
-    % Create 8-QAM symbols
-    sym_8QAM = qammod(data{4},8,'InputType','bit','UnitAveragePower',true).';
-    % Create QPSK symbols
-    sym_QPSK = qammod(data{5},4,'InputType','bit','UnitAveragePower',true).';
-    % Create QPSK symbols
-    sym_BPSK = qammod(data{6},2,'InputType','bit','UnitAveragePower',true).';
-    % Create QPSK symbols
-    sym_QPSK_extra = qammod(data_QPSK_extra,4,'InputType','bit','UnitAveragePower',true).';
+    symbols(1,:) = qammod(bits{1},64,'InputType','bit','UnitAveragePower',true).';  % 64QAM
+    symbols(2,:) = qammod(bits{2},32,'InputType','bit','UnitAveragePower',true).';  % 32QAM
+    symbols(3,:) = qammod(bits{3},16,'InputType','bit','UnitAveragePower',true).';  % 16QAM
+    symbols(4,:) = qammod(bits{4},8,'InputType','bit','UnitAveragePower',true).';  % 8QAM
+    symbols(5,:) = qammod(bits{5},4,'InputType','bit','UnitAveragePower',true).';  % QPSK
+    symbols(6,:) = qammod(bits{6},2,'InputType','bit','UnitAveragePower',true).';  % BPSK
 
     % Construct payload 1:
     % 64 symbols with IFFT length of 256
@@ -91,33 +95,27 @@ if ~exist(fullfile('data','information.mat'),'file')
     % Subcarrier 5 uses 64-QAM. Each point of 64-QAM is used once.
     % Other subcarriers use QPSK
     modOut1 = [zeros(4,64);       % Zero padding
-               sym_64QAM;         % 64-QAM - 1 subcarrier
-               sym_32QAM;         % 32-QAM - 1 subcarrier
-               sym_16QAM;         % 16-QAM - 1 subcarrier
-               sym_8QAM;          % 8-QAM - 1 subcarrier
-               sym_QPSK;          % QPSK - 1 subcarrier
-               sym_BPSK;          % BPSK - 1 subcarrier
-               sym_QPSK_extra;    % QPSK - 1 subcarrier - Extra
-               zeros(256-4-8,64)]; % Zero padding
+               symbols(1,:);         % 64-QAM - 1 subcarrier
+               symbols(2,:);         % 32-QAM - 1 subcarrier
+               symbols(3,:);         % 16-QAM - 1 subcarrier
+               symbols(4,:);          % 8-QAM - 1 subcarrier
+               symbols(5,:);          % QPSK - 1 subcarrier
+               symbols(6,:);          % BPSK - 1 subcarrier
+               zeros(256-4-6,64)]; % Zero padding
     payload1 = reshape(ifft(modOut1),[],1);
     % Scale time-domain signal appropriately
     payload1 = payload1/max(real(payload1))*0.5;
     % Save
-    save(fullfile('data','information.mat'),'data','data_QPSK_extra');
+    save(fullfile('data','information4.mat'),'bits','symbols','payload1');
 else
-    load(fullfile('data','information.mat'),'data','data_QPSK_extra');
+    load(fullfile('data','information4.mat'),'bits','symbols','payload1');
 end
 
 %% Initialize variables and temporary files for channel feedback
 
-% Initialize channel estimate randomly - create file
-fid = fopen(fileName,'wb');
-chEst_prelim = rand(1,numTxAntennas) + 1j*rand(1,numTxAntennas);
-fwrite(fid,[real(chEst_prelim) imag(chEst_prelim)],'double');
-fclose(fid);
-
 % Open file to share channel estimation(read only)
 fid1 = fopen(fileName,'rb');
+lastFeedback1 = randn(1,numTxAntennas) + 1i.*randn(1,numTxAntennas);
 
 %% Main loop
 
@@ -131,6 +129,7 @@ for i = 1:maxIter
     % by 4 complex gains. This approximation works because the
     % signal has very narrow bandwidth (400k samples per second).
     channelEst1 = fread(fid1,numTxAntennas*2,'double');
+
     if length(channelEst1) == numTxAntennas*2
         % File content has expected length
         channelEst1 = (   channelEst1(1:numTxAntennas) + ...
@@ -163,3 +162,6 @@ for i = 1:maxIter
 end
 
 release(transmitter);  % Release the System Object for future use
+
+
+% EOF
