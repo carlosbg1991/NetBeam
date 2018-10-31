@@ -2,12 +2,17 @@
 clear all; clear classes; close all; clc;
 
 %% Configuration
-maxIter      = 500;
+elevList     = (90:-10:0);
+azymList     = 90;
+angleDur     = 20;
+margin       = 0;
+maxIter      = 10000;
+maxIterRot   = length(elevList)*length(azymList)*angleDur + margin;
 modList      = [64 32 16 8 4 2];
-nTxAntennas1 = 1;
+nTxAntennas1 = 2;
 nTxAntennas2 = 0;
 nTxAntennas  = nTxAntennas1 + nTxAntennas2;
-gain         = 20;
+gain         = 30;
 NFFT         = 256;
 
 %% Configure radios
@@ -44,13 +49,25 @@ fileName = 'helperMUBeamformfeedback1.bin';
 fid = fopen(fileName,'wb');
 
 % Random initial channel
-chEst_old = rand(1,nTxAntennas) + 1j*rand(1,nTxAntennas);
+% chEst_old = rand(1,nTxAntennas) + 1j*rand(1,nTxAntennas);
+chEst_old = zeros(1,nTxAntennas) + 1j*zeros(1,nTxAntennas);
 rxPow_old = 0;
+
+% Create Angle List
+elevList1 = repelem(elevList,1,length(azymList));
+azymList1 = repmat(azymList,1,length(elevList));
+elevList1 = repelem(elevList1,1,angleDur);
+azymList1 = repelem(azymList1,1,angleDur);
+elevList1 = [90.*ones(1,margin) elevList1];
+azymList1 = [90.*ones(1,margin) azymList1];
+elev_old = elevList1(1);
+azym_old = azymList1(1);
 
 %% Main loopif nargin == 2
 
 tic;
 chTot = zeros(nTxAntennas,maxIter);
+iterRot = 1;
 for i = 1:maxIter
     tic;
     [rxSig, len] = receiver();
@@ -105,11 +122,24 @@ for i = 1:maxIter
             % Write to file and transmit to TX-hosts using Python
             fwrite(fid,[real(chEst(1:nTxAntennas1)) imag(chEst(1:nTxAntennas1)) ...  % 1st TX
                         finalCorrectionTime(1) ...   % Correction time for 1st TX
+                        elevList1(iterRot) ...  % Elevation angle for 1st TX
+                        azymList1(iterRot) ...  % Azymuth angle for 1st TX
+                        elevList1(iterRot) ...  % Elevation angle for 1st TX
+                        azymList1(iterRot) ...  % Azymuth angle for 1st TX
                         real(chEst(nTxAntennas1+1:nTxAntennas)) imag(chEst(nTxAntennas1+1:nTxAntennas)) ... % 2nd TX
-                        finalCorrectionTime(2)],...  % Correction time for 2 TX
-                        'double');
-                    % Compute BER
-            % Store estimation in global variable
+                        finalCorrectionTime(2) ...  % Correction time for 2 TX
+                        elevList1(iterRot) ...  % Elevation angle for 2nd TX
+                        azymList1(iterRot) ...  % Azymuth angle for 1st TX
+                        elevList1(iterRot) ...  % Elevation angle for 1st TX
+                        azymList1(iterRot) ...  % Azymuth angle for 1st TX
+                        ],'double'); ...  % Azymuth angle for 2nd TX
+            % Store applied angles
+            appliedElev(i) = elevList1(iterRot);
+            elev_old = elevList1(iterRot);
+            appliedAzym(i) = azymList1(iterRot);
+            azym_old = azymList1(iterRot);
+            % Compute BER
+            % Store channel estimation
             chTot(:,i) = chEst;
             chEst_old = chEst;
             rxPow(i) = pow2db((payload_rx'*payload_rx)/length(payload_rx)) + 30;
@@ -117,23 +147,44 @@ for i = 1:maxIter
             % Print out the estimation
             fprintf('Iter %d:\n',i);
             for id = 1:nTxAntennas1
-                fprintf('h1(%d) = %.7f + %.7fj\t',id,real(chEst(id)),imag(chEst(id)));
+                fprintf('h1(%d) = %.7f + %.7fj\n',id,real(chEst(id)),imag(chEst(id)));
+                fprintf('elev = %.2f\n',elevList1(iterRot));
+                fprintf('azym = %.2f\n',azymList1(iterRot));
             end
-            fprintf('\n');
             for id = nTxAntennas1+1:nTxAntennas
-                fprintf('h2(%d) = %.7f + %.7fj\t',id,real(chEst(id)),imag(chEst(id)));
+                fprintf('h2(%d) = %.7f + %.7fj\n',id,real(chEst(id)),imag(chEst(id)));
+                fprintf('elev = %.2f\n',elevList1(iterRot));
+                fprintf('azym = %.2f\n',azymList1(iterRot));
             end
-%             fprintf('\n');
             fprintf('Rx Power (dBm) = %.3f\n',rxPow(i));
+            % Stop execution when reached the maximum number of angles
+            if iterRot == maxIterRot
+                break;
+            else
+                iterRot = iterRot + 1;
+            end
         else
             % Store estimation in global variable
             chTot(:,i) = chEst_old;
             rxPow(i) = rxPow_old;
+            appliedElev(i) = elev_old;
+            appliedAzym(i) = azym_old;
         end
-        
     else
         chTot(:,i) = chEst_old;
         rxPow(i) = rxPow_old;
+        appliedElev(i) = elev_old;
+        appliedAzym(i) = azym_old;
+    end
+    
+    figure(2);
+%     cla reset; hold on;
+    for idxFFT = 1:nTxAntennas
+        subplot(1,nTxAntennas,idxFFT); hold on;
+        plot((1:i),abs(chTot(idxFFT,1:i)),'Color','r','LineWidth',2,'Marker','s','MarkerSize',2);
+        title('Absolute Gain','FontSize',12);
+        xlabel('Iteration','FontSize',12);
+        ylabel('Gain','FontSize',12);
     end
 end
 
