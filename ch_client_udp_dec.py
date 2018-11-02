@@ -4,14 +4,14 @@ import math
 import struct
 import time
 
-numTxAntennas1 = 1
-numTxAntennas2 = 1
+numTxAntennas1 = 2
+numTxAntennas2 = 0
 
 # Create the datagram socket - Multicast
 # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_address1 = ('192.168.31.41', 50001)
-# server_address2 = ('192.168.31.41', 50002)
-server_address2 = ('192.168.31.49', 50002)
+server_address1 = ('192.168.31.42', 50001)
+server_address2 = ('192.168.31.42', 50002)
+# server_address2 = ('192.168.31.49', 50002)
 # sock.settimeout(20.0)
 # print >>sys.stderr, 'connecting to %s port %s' % server_address
 
