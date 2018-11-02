@@ -191,75 +191,7 @@ for i = 1:maxIter
     end
 end
 
+lastIter = i;
 save('sim_BER-exp2ant.mat');
 
-lastIter = i;
-for idxFFT = 1:nTxAntennas
-    figure(15);
-    subplot(nTxAntennas,3,3*(idxFFT-1) + 1); hold on; grid minor;
-    % plot((1:maxIter),real(chRealTot),'Color','b');
-    plot((1:lastIter),real(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
-    title('Real','FontSize',12);
-    xlabel('Iteration','FontSize',12);
-    ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idxFFT-1) + 2); hold on; grid minor;
-    % plot((1:maxIter),imag(chRealTot),'Color','b');
-    plot((1:lastIter),imag(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
-    title('Imaginary','FontSize',12);
-    xlabel('Iteration','FontSize',12);
-    ylabel('Gain','FontSize',12);
-    subplot(nTxAntennas,3,3*(idxFFT-1) + 3); hold on; grid minor;
-    plot((1:lastIter),abs(chTot(idxFFT,1:lastIter)),'Color','r','LineWidth',2);
-    title('Absolute Gain','FontSize',12);
-    xlabel('Iteration','FontSize',12);
-    ylabel('Gain','FontSize',12);
-
-    figure(16);
-    subplot(4,1,idxFFT); hold on;
-    covTot_imag = zeros(lastIter,1);
-    covTot_real = zeros(lastIter,1);
-    re = real(chTot(idxFFT,:));
-    im = imag(chTot(idxFFT,:));
-    re(isnan(re))=0;
-    window_size = 1;
-    for k = 1:1:lastIter-window_size
-        covTot_imag(k) = cov(im(k:k+window_size));
-        covTot_real(k) = cov(re(k:k+window_size));
-    end
-    plot(abs(1-covTot_imag),'LineWidth',2);
-    plot(abs(1-covTot_real),'LineWidth',2);
-    legend('Imaginary','Real');
-    ylim([0.999 1]);
-end
-
-figure(17);
-totGain = 0;
-for txID = 1:nTxAntennas
-    t = abs(chTot(txID,1:lastIter));
-    t(isnan(t))=0;  % replace nan values
-    totGain = totGain + t;
-end
- plot((1:lastIter),totGain,'Color','r','LineWidth',2);
-title('Total channel Gain','FontSize',12);
-xlabel('Iteration','FontSize',12);
-ylabel('Gain (linear)','FontSize',12);
-
-figure(18);
-subplot(611); plot(abs(BER(1:i,1)),'LineWidth',1.5); legend('64-QAM'); ylabel('BER'); ylim([0 1]);
-subplot(612); plot(abs(BER(1:i,2)),'LineWidth',1.5); legend('32-QAM'); ylabel('BER'); ylim([0 1]);
-subplot(613); plot(abs(BER(1:i,3)),'LineWidth',1.5); legend('16-QAM'); ylabel('BER'); ylim([0 1]);
-subplot(614); plot(abs(BER(1:i,4)),'LineWidth',1.5); legend('8-QAM'); ylabel('BER'); ylim([0 1]);
-subplot(615); plot(abs(BER(1:i,5)),'LineWidth',1.5); legend('QPSK'); ylabel('BER'); ylim([0 1]);
-subplot(616); plot(abs(BER(1:i,6)),'LineWidth',1.5); legend('BPSK'); ylabel('BER'); ylim([0 1]);
-
 release(receiver);
-
-%% Appendix
-% This example uses the following helper functions:
-%
-% * <matlab:edit('helperMUBeamformInitGoldSeq.m') helperMUBeamformInitGoldSeq.m>
-% * <matlab:edit('helperMUBeamformEstimateChannel.m') helperMUBeamformEstimateChannel.m>
-
-%% Copyright Notice
-% Universal Software Radio Peripheral(R) and USRP(R) are trademarks of
-% National Instruments Corp.
