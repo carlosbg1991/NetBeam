@@ -14,7 +14,7 @@ clear all; clear classes; close all; clc;
 %     fileName      = varargin{4};
 % elseif (nargin==0)
     numTxAntennas = 2;  % Select between 1, 2 and 4
-    maxIter       = 30000;  % Maximum transmissions over the air
+    maxIter       = 50000;  % Maximum transmissions over the air
     gain          = 30; % in dB
     fileName      = 'weights_tx1.bin';  % File location for channel estimation
 % else
@@ -148,20 +148,7 @@ for i = 1:maxIter
     % signal has very narrow bandwidth (400k samples per second).
     myReading = fread(fid1,numTxAntennas*2 + 1 + numTxAntennas*2,'double');
 
-    if length(myReading) == numTxAntennas*2
-        % File content has expected length
-        channelEst1 = (   myReading(1:numTxAntennas) + ...
-                       1j*myReading(numTxAntennas+1:numTxAntennas*2)).';
-        lastFeedback1 = channelEst1;
-    elseif length(myReading) == numTxAntennas*2 + 1
-        % File content has expected length
-        channelEst1 = (   myReading(1:numTxAntennas) + ...
-                       1j*myReading(numTxAntennas+1:numTxAntennas*2)).';
-        lastFeedback1 = channelEst1;
-        % Time correction included in feedback
-        timeCorrect = myReading(end);
-        fprintf('Pre-pending signal with %d samples\n',timeCorrect);
-    elseif length(myReading) == numTxAntennas*2 + 1 + numTxAntennas*2
+    if length(myReading) == numTxAntennas*2 + 1 + numTxAntennas*2
         % File content has expected length
         channelEst1 = (   myReading(1:numTxAntennas) + ...
                        1j*myReading(numTxAntennas+1:numTxAntennas*2)).';
@@ -171,13 +158,15 @@ for i = 1:maxIter
         % Antenna rotation
         elevation = myReading(numTxAntennas*2+2 : 2 : end);
         azymuth = myReading(numTxAntennas*2+3 : 2 : end);
-        fprintf('Pre-pending signal with %d samples\n',timeCorrect);
-        fprintf('Iter %d - Applying channel:\n',i);
+        fprintf('****** Iter %d ******\n',i);
         for id = 1:numTxAntennas
-            fprintf('Rotating antenna < %.2f , %.2f > degrees\n', elevation(id), azymuth(id));
+            fprintf('Antenna %d: h = < %.7f , %.7f > gain\n',id,real(channelEst1(id)),imag(channelEst1(id)));
+            fprintf('Antenna %d: a = < %.7f , %.7f > degrees\n',id,elevation(id),azymuth(id));
             writePosition(s_elev(id), elevation(id)/180);
             writePosition(s_azym(id), azymuth(id)/180);
         end
+        fprintf('Pre-pending signal with %d samples\n',timeCorrect);
+        fprintf('*********************\n\n\n');
     else
         % Use last feedback
         channelEst1 = lastFeedback1;
@@ -192,12 +181,6 @@ for i = 1:maxIter
 
     % Beamforming for payload
     payload = payload1*beamWeight1;
-    
-    fprintf('Iter %d - Applying channel:\n',i);
-    for id = 1:numTxAntennas
-        fprintf('h = %.7f + %.7fj\t\n',real(channelEst1(id)),imag(channelEst1(id)));
-    end
-    fprintf('\n');
 
     % Generate Frame
     txSig = [trainingSig; zeros(400,numTxAntennas); payload; zeros(100,numTxAntennas)] * 0.2;

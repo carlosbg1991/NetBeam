@@ -1,23 +1,23 @@
-function BER_MultiUserBeamformingExample4_tx1(varargin)
+% function BER_MultiUserBeamformingExample4_tx1(varargin)
 % Multi-User Beamforming transmitter with the following features:
 % - Local file to store the channel estimation.
 % - Only 6 subcarriers are used for data transmision.
 % - The number of antennas and gain are variable.
 
 %% Configure experiment
-if (nargin==4)
-    numTxAntennas = varargin{1};
-    maxIter       = varargin{2};
-    gain          = varargin{3};
-    fileName      = varargin{4};
-elseif (nargin==0)
+% if (nargin==4)
+%     numTxAntennas = varargin{1};
+%     maxIter       = varargin{2};
+%     gain          = varargin{3};
+%     fileName      = varargin{4};
+% elseif (nargin==0)
     numTxAntennas = 1;  % Select between 1, 2 and 4
     maxIter       = 30000;  % Maximum transmissions over the air
-    gain          = 0; % in dB
+    gain          = 30; % in dB
     fileName      = 'weights_tx1.bin';  % File location for channel estimation
-else
-    error('ERROR: The number of input arguments mismatch the expected.\n');
-end
+% else
+%     error('ERROR: The number of input arguments mismatch the expected.\n');
+% end
 
 %% Configure radios
 
