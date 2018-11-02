@@ -20,7 +20,7 @@ print >>sys.stderr, 'starting up on %s port %s' % server_address  # Default prin
 # mreq = struct.pack('4sL', group, socket.INADDR_ANY)
 # sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
-buffMax = 8*(2*nTxAntennas + 1)  # Define packet segmentation (characters in TX/RX strings)
+buffMax = 8*(2*nTxAntennas + 1 + 2*nTxAntennas)  # Define packet segmentation (characters in TX/RX strings)
 name = "weights_tx1.bin"
 
 results = []
