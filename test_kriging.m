@@ -6,9 +6,9 @@ addpath('kriging/');  % Include Kriging folder (variogram and kriging)
 % load('results-19-Nov-2018_18:52:28.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-19-Nov-2018_18:52:28_2.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-25-Nov-2018_14:49:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-load('results-25-Nov-2018_14:55:08.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
+% load('results-25-Nov-2018_14:55:08.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-25-Nov-2018_20:15:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-27-Nov-2018_01:32:43.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
+load('results-27-Nov-2018_01:32:43.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-29-Nov-2018_04:41:46.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-29-Nov-2018_22:45:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
 % load('results-03-Dec-2018_13:12:23.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');

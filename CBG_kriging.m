@@ -1,23 +1,26 @@
-function [Zhat,Zvar] = CBG_kriging(Z,elevList,azimList,n_samples,plotFlag)
+function [opt_krig,opt_exhv,Zhat,Zvar] = CBG_kriging(Z,elevList,azimList,n_samples,plotFlag)
 
 nTxAntennas = size(Z,3);
 [X,Y] = meshgrid(elevList,azimList);
 plotIdx = 1;
 
+% Output variables
+opt_krig = zeros(3,nTxAntennas);  % Kriging -  gain, elevation and azimuth (deg)
+opt_exhv = zeros(3,nTxAntennas);  % Exhaustive - gain, elevation and azimuth (deg)
+
 for id = 1:nTxAntennas
     % New interpolated input (assume this is the real exhaustive)
-    elevList_int = (max(elevList):-1:min(elevList));
-    azimList_int = (max(azimList):-1:min(azimList));
+    elevList_int = (max(elevList):-5:min(elevList));
+    azimList_int = (max(azimList):-5:min(azimList));
     [X0,Y0] = meshgrid(elevList_int,azimList_int);
     Z0(:,:,id) = interp2(X,Y,Z(:,:,id),X0,Y0,'spline');  %#ok
 
     % Sample the space
-    indeces_elev = randperm(length(elevList_int));  % indices to sample elevation
-    indeces_elev = indeces_elev(1:n_samples);
-    indeces_azim = randperm(length(azimList_int));  % indices to sample azimuth
-    indeces_azim = indeces_azim(1:n_samples);
-    elev_sample = elevList_int(indeces_elev);  % select sample elevation
-    azim_sample = azimList_int(indeces_azim);  % select sample azimuth
+    combo = combvec(elevList_int,azimList_int);  % Truth table
+    samp_ids = randperm(length(combo));  % Generate Random sequence (no EI for now)
+    samples = combo(:,samp_ids(1:n_samples));  % Extract samples Elevations and Azimuths
+    elev_sample = samples(1,:);
+    azim_sample = samples(2,:);
     [X_sample,Y_sample] = meshgrid(elev_sample,azim_sample);
     Z_sample = interp2(X0,Y0,Z0(:,:,id),X_sample,Y_sample);
 
@@ -35,11 +38,15 @@ for id = 1:nTxAntennas
     
     % Find Maximum based on prediction and uncertainty
     T = Zhat(:,:,id);
-    [opt_gain_krig(id),B] = max(T(:));
-    [opt_azim_krig(id), opt_elev_krig(id)] = ind2sub(size(T),B);
+    [opt_krig(1,id),B] = max(T(:));
+    [idx_azim,idx_elev] = ind2sub(size(T),B);
+    opt_krig(2,id) = elevList_int(idx_elev);
+    opt_krig(3,id) = azimList_int(idx_azim);
     T = Z(:,:,id);
-    [opt_gain_exhv(id),B] = max(T(:));
-    [opt_azim_exhv(id), opt_elev_exhv(id)] = ind2sub(size(T),B);
+    [opt_exhv(1,id),B] = max(T(:));
+    [idx_azim,idx_elev] = ind2sub(size(T),B);
+    opt_exhv(2,id) = elevList_int(idx_elev);
+    opt_exhv(3,id) = azimList_int(idx_azim);
 
     % Plot results
     if plotFlag
