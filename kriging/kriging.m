@@ -127,7 +127,7 @@ Dx = hypot(bsxfun(@minus,x,x'),bsxfun(@minus,y,y'));
 
 % if we have a bounded variogram model, it is convenient to set distances
 % that are longer than the range to the range since from here on the
-% variogram value remains the same and we don£t need composite functions.
+% variogram value remains the same and we donï¿½t need composite functions.
 switch vstruct.type;
     case 'bounded'
         Dx = min(Dx,vstruct.range);
@@ -196,6 +196,26 @@ for r = 1:nrloops;
     
     % solve system
     lambda = A*b;
+    
+    % correct negative weights (Deutsch 1996) 
+    if sum(lambda(:)<0) % if negative weigths are found 
+        % compute the "average absolute magnitude of the negative weights" 
+        lambdaLim=lambda(1:end-1,:); 
+        PosInd=lambdaLim>=0; 
+        lambdaLim(PosInd)=NaN; 
+        lambdaLim=nanmean(abs(lambdaLim),1); 
+        % compute the mean covariance between "negative" locations and the IX ones 
+        bNoOnes=b(1:end-1,:); 
+        bLim=bNoOnes; 
+        bLim(PosInd)=NaN; 
+        bLim=nanmean(bLim,1); 
+        % correct the weights 
+        lambdaC=lambda(1:end-1,:); % step 1 of Deutsch 1996 
+        lambdaC(lambdaC<0)=0; % step 2 of Deutsch 1996 
+        lambdaC(PosInd & bNoOnes-repmat(bLim,numobs,1)<0 & lambda(1:end-1,:)-repmat(lambdaLim,numobs,1)<0)=0; % step 3 of Deutsch 1996 
+        % restandardization of the weights 
+        lambda(1:end-1,:)=lambdaC./repmat(sum(lambdaC,1),numobs,1); 
+    end 
     
     % estimate zi
     zi(IX)  = lambda'*z;
