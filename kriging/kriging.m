@@ -214,7 +214,7 @@ for r = 1:nrloops;
         lambdaC(lambdaC<0)=0; % step 2 of Deutsch 1996 
         lambdaC(PosInd & bNoOnes-repmat(bLim,numobs,1)<0 & lambda(1:end-1,:)-repmat(lambdaLim,numobs,1)<0)=0; % step 3 of Deutsch 1996 
         % restandardization of the weights 
-        lambda(1:end-1,:)=lambdaC./repmat(sum(lambdaC,1),numobs,1); 
+        lambda(1:end-1,:)=lambdaC./repmat(sum(lambdaC,1),numobs,1);
     end 
     
     % estimate zi
