@@ -99,10 +99,11 @@ end
 % end
 
 %% Test Progressive
-n_samples = 20;  % Maximum number of samples to run Kriging with
+n_samples = 30;  % Maximum number of samples to run Kriging with
 minSamples = 3;  % Minimum Kriging initialization space
 new_additions = 1;
 id = 2; % For instance, could be 1,2,3,4 (antenna id)
+selPolicy = 'DIRECT-minVar';  % Chose between 'random', 'EI', 'PI', 'DIRECT-rand', 'DIRECT-minVar'
 
 % New interpolated input (assume this is the real exhaustive)
 elevList_int = (max(elevList):-1:min(elevList));
@@ -110,30 +111,40 @@ azimList_int = (max(azimList):-1:min(azimList));
 [X0,Y0] = meshgrid(elevList_int,azimList_int);
 Z0 = interp2(X,Y,Z(:,:,id),X0,Y0,'spline');
 
-% Generate Exhaustive image
-
-%     % Combo 1    
-%     elev_sample = [20 20 20 60 60 60 80 80 80];
-%     azim_sample = [40 90 140 40 90 140 40 90 140];
-%     % Combo 2
-%     elev_sample = [20 20 80 80];
-%     azim_sample = [40 60 40 60];
-%     % Combo 3
-%     elev_sample = [20 20 40 40];
-%     azim_sample = [40 140 40 140];
-
-% Sample the space
+% Initialize random space sampling
 combo = combvec(elevList_int,azimList_int);  % Truth table
 samp_ids = randperm(length(combo));  % Generate Random sequence (no EI for now)
 samples = combo(:,samp_ids(1:n_samples));  % Extract samples Elevations and Azimuths
-elev_sample = samples(1,:);
-azim_sample = samples(2,:);
+elev_sample_random = samples(1,:);
+azim_sample_random = samples(2,:);
+
+% Initialize DIRECT
+newAddPoss = 4;
+selPoss = CBG_DIRECT([0 180], [0 90], newAddPoss);
+figure(2); cla reset; hold on;
+scatter(selPoss(1,1,:),selPoss(1,2,:))
+for t = 1:newAddPoss
+    plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',2)
+    plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',2)
+end
+hold off;
+
+% Initialize Sampling
+if strcmp(selPolicy,'random')
+    elev_sample1 = elev_sample_random(1:iter);  % Store the sampled elevation angles
+    azim_sample1 = azim_sample_random(1:iter);  % Store the sampled azimuth angles
+elseif strcmp(selPolicy,'EI')
+    % To-do
+elseif strcmp(selPolicy,'PI')
+    % To-do
+elseif strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
+    elev_sample1 = selPoss(1,2,:);  elev_sample1 = elev_sample1(:).';
+    azim_sample1 = selPoss(1,1,:);  azim_sample1 = azim_sample1(:).';
+end
 
 count = 1;
 myvar = zeros(size(minSamples:new_additions:n_samples));
 for iter = minSamples:new_additions:n_samples
-    elev_sample1 = elev_sample(1:iter);
-    azim_sample1 = azim_sample(1:iter);
 
     [X_sample,Y_sample] = meshgrid(elev_sample1,azim_sample1);
     Z_sample = interp2(X0,Y0,Z0,X_sample,Y_sample);
@@ -150,17 +161,91 @@ for iter = minSamples:new_additions:n_samples
     % use the sampled locations in a kriging
     [Zhat,Zvar] = kriging(vstruct,X_sample,Y_sample,Z_sample,X0,Y0);
     
+    % Select next trial upong selection policy
+    if strcmp(selPolicy,'random')
+        elev_sample1 = elev_sample_random(1:iter);
+        azim_sample1 = azim_sample_random(1:iter);
+	elseif strcmp(selPolicy,'EI')
+        % To-do
+    elseif strcmp(selPolicy,'PI')
+        % To-do
+    elseif strcmp(selPolicy,'DIRECT-rand')
+        % First, select sample following a random selection
+        possIndices = size(selPoss,3);
+        selTrial = randi([1 possIndices]);
+        % Retrieve results
+        selCenter = selPoss(1,:,selTrial);
+        selLimAzim = selPoss(2,:,selTrial);
+        selLimElev = selPoss(3,:,selTrial);
+        % Second, break down the new area into new sub-areas using DIRECT
+        addSelPoss = CBG_DIRECT(selLimAzim,selLimElev,newAddPoss);
+        % Remove explored possibility from selection set
+        selPoss(:,:,selTrial) = [];
+        % Append new sub-area to global area
+        selPoss = cat(3, selPoss, addSelPoss);
+        % Plot possibilities
+        figure(2); cla reset; hold on;
+        scatter(selPoss(1,1,:),selPoss(1,2,:))
+        for t = 1:size(selPoss,3)
+            plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',2)
+            plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',2)
+        end
+        hold off;
+        % Select actual azimuth and elevation to evaluate with kriging
+        elev_sample1 = [elev_sample1 selCenter(2)];  %#ok<AGROW>
+        azim_sample1 = [azim_sample1 selCenter(1)];  %#ok<AGROW>
+    elseif strcmp(selPolicy,'DIRECT-minVar')
+        if  iter>minSamples
+            % First, select sample with lowest variance
+            myAzims = selPoss(1,1,:);   myAzims = myAzims(:);
+            myElevs = selPoss(1,2,:);   myElevs = myElevs(:);
+            myAzimsTot = repmat(azimList_int,length(myAzims),1);
+            myElevsTot = repmat(elevList_int,length(myElevs),1);
+            [~,getIdxAzim] = min(abs(myAzimsTot - myAzims),[],2);
+            [~,getIdxElev] = min(abs(myElevsTot - myElevs),[],2);
+            vairances = diag(Zvar(getIdxAzim,getIdxElev));
+            [~,selTrial] = max(vairances);
+        else
+            % Variance matrix not initialized. Random selection.
+            possIndices = size(selPoss,3);
+            selTrial = randi([1 possIndices]);
+        end
+        % Retrieve results
+        selCenter = selPoss(1,:,selTrial);
+        selLimAzim = selPoss(2,:,selTrial);
+        selLimElev = selPoss(3,:,selTrial);
+        % Second, break down the new area into new sub-areas using DIRECT
+        addSelPoss = CBG_DIRECT(selLimAzim,selLimElev,newAddPoss);
+        % Remove explored possibility from selection set
+        selPoss(:,:,selTrial) = [];
+        % Append new sub-area to global area
+        selPoss = cat(3, selPoss, addSelPoss);
+        % Plot possibilities
+        figure(2); cla reset; hold on;
+        scatter(selPoss(1,1,:),selPoss(1,2,:))
+        for t = 1:size(selPoss,3)
+            plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',2)
+            plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',2)
+        end
+        hold off;
+        % Select actual azimuth and elevation to evaluate with kriging
+        elev_sample1 = [elev_sample1 selCenter(2)];  %#ok<AGROW>
+        azim_sample1 = [azim_sample1 selCenter(1)];  %#ok<AGROW>
+    end
+    
     % plotting
+    figure(1);
+    
 	ax = subplot(1,4,1); hold on
     brewermap('*RdBu');
     colormap(ax,'brewermap');
     colorbar('eastoutside');
-    imagesc(X0(1,:),Y0(:,1),Z0); axis image; axis xy
-    plot(elev_sample1,azim_sample1,'+r','MarkerSize',5);
+    imagesc(X0(1,:),Y0(:,1),Z0); axis image; axis xy  % Generate Exhaustive image
+    plot(elev_sample1,azim_sample1,'+r','MarkerSize',5);  % Plot trials so far
     mystr = strcat('#',num2str(iter),{' '},'Real+sampling');
     title(mystr);
     hold off
-
+    
     ax = subplot(1,4,2);
     imagesc(X0(1,:),Y0(:,1),Zhat); axis image; axis xy;
     brewermap('*RdBu');
