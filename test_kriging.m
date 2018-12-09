@@ -4,13 +4,13 @@ addpath('kriging/');  % Include Kriging folder (variogram and kriging)
 addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
 
 %% PARAMETERS
-n_samples     = 15;    % Maximum number of samples to run Kriging with
-minSamples    = 6;     % Minimum Kriging initialization space
+n_samples     = 100;    % Maximum number of samples to run Kriging with
+minSamples    = 100;     % Minimum Kriging initialization space
 new_additions = 1;     % New trials per iteration
 newAddPoss    = 4;     % New possible possitions for DIRECT
 nIter         = 1;    % Iterations to run Random over
-antID         = 1;     % Antenna ID, could be 1,2,3,4
-expID         = 3;     % Experiment ID, could be 1,2,3,4,5
+antID         = 4;     % Antenna ID, could be 1,2,3,4
+expID         = 2;     % Experiment ID, could be 1,2,3,4,5
 plotFlag      = true;  % Flag to plot results
 
 %% PARSE Data if not done before
@@ -91,7 +91,7 @@ exhv_azimtuh_long = repmat(exhv_azimuth,size(nSamplesList));
 exhv_elevation_long = repmat(exhv_elevation,size(nSamplesList));
 exhv_gain_long = repmat(exhv_gain,size(nSamplesList));
 
-selPolicyList = {'DIRECT-minVar','UM','DIRECT-rand','random'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+selPolicyList = {'DIRECT-minVar','random','UM','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
 for polIdx = 1:length(selPolicyList)
 
     selPolicy = selPolicyList{polIdx};
@@ -173,42 +173,56 @@ for polIdx = 1:length(selPolicyList)
                 end
 
                 % Plot exhaustive, predictions and uncertainty
-                figure(1); 
-
-                ax = subplot(1,4,1); cla reset; hold on;
-                brewermap('*RdBu');
-                colormap(ax,'brewermap');
-                colorbar('eastoutside');
-                imagesc(X0(1,:),Y0(:,1),Z0); axis image; axis xy  % Generate Exhaustive image
-                p1 = plot(elev_sample1,azim_sample1,'+r','MarkerSize',5);  % Plot trials so far
-                p2 = plot(exhv_elevation,exhv_azimuth,'sk','MarkerSize',10,'MarkerFaceColor','k');  % Plot trials so far
-                p3 = plot(pred_elevation,pred_azimuth,'sy','MarkerSize',10,'MarkerFaceColor','y');  % Plot trials so far
+%                 figure(1); 
+% 
+%                 ax = subplot(1,4,1); cla reset; hold on;
+                ax = figure;  hold on;
+                brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
+                imagesc(X0(1,:),Y0(:,1),Z0); axis xy; axis tight; % Generate Exhaustive image
+                p1 = plot(elev_sample1,azim_sample1,'o','color','b','MarkerSize',5,'MarkerFaceColor','b');  % Plot trials so far
+                p2 = plot(exhv_elevation,exhv_azimuth,'sg','MarkerSize',7.5,'MarkerFaceColor','g');  % Plot trials so far
+                p3 = plot(pred_elevation,pred_azimuth,'sy','MarkerSize',7.5,'MarkerFaceColor','y');  % Plot trials so far
                 mystr = strcat('#',num2str(nSamples),{' '},'Real+sampling');
     %             legend([p1 p2 p3],{'Trials','Optimum','Selected'})
                 title(mystr);
+                if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
+                    scatter(selPoss(1,1,:),selPoss(1,2,:),15,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k');
+                    for t = 1:size(selPoss,3)
+                    hm = plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=0.4;
+                    hm = plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=0.4;
+                    end
+                end
                 hold off
 
-                ax = subplot(1,4,2); cla reset;
-                imagesc(X0(1,:),Y0(:,1),Zhat); axis image; axis xy;
-                brewermap('*RdBu');
+%                 ax = subplot(1,4,2); cla reset;
+                ax = figure;
+                imagesc(X0(1,:),Y0(:,1),Zhat); axis xy; axis tight;
+                brewermap('*Spectral');
                 colormap(ax,'brewermap');
                 colorbar('eastoutside');
                 mystr = strcat('#',num2str(nSamples),{' '},'kriging predictions');
                 title(mystr);
 
-                ax = subplot(1,4,3); cla reset;
+%                 ax = subplot(1,4,3); cla reset;
+                ax = figure; hold on; 
+                brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
                 contourf(X0,Y0,Zvar);
                 mystr = strcat('#',num2str(nSamples),{' '},'kriging variance');
                 title(mystr);
-                brewermap('*RdBu');
-                colormap(ax,'brewermap');
-                colorbar('eastoutside');
+                
+                p1 = plot(elev_sample1,azim_sample1,'o','color','g','MarkerSize',5,'MarkerFaceColor','g');  % Plot trials so far
+                if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
+                    scatter(selPoss(1,1,:),selPoss(1,2,:),15,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k');
+                    for t = 1:size(selPoss,3)
+                    hm = plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=1;
+                    hm = plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=1;
+                    end
+                end
 
-                ax = subplot(1,4,4); cla reset;
+%                 ax = subplot(1,4,4); cla reset;
+                ax = figure; 
+                brewermap('*RdBu');  colormap(ax,'brewermap');  colorbar('eastoutside');
                 plot(abs(Zvar(:)));
-                brewermap('*RdBu');
-                colormap(ax,'brewermap');
-                colorbar('eastoutside');
                 mystr = strcat('#',num2str(nSamples),{' '},'Overall variance');
                 title(mystr);
             end
