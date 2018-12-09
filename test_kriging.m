@@ -1,110 +1,26 @@
-clear all; clear classes;  %#ok
+% clear all; clear classes;  %#ok
 % close all; clc;
 addpath('kriging/');  % Include Kriging folder (variogram and kriging)
 addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
 
-% load('results/res_ROT_outdoors.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-19-Nov-2018_16:17:56.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-19-Nov-2018_18:52:28.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-19-Nov-2018_18:52:28_2.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-25-Nov-2018_14:49:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-25-Nov-2018_14:55:08.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-25-Nov-2018_20:15:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-
-load('results-27-Nov-2018_01:32:43.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-
-% load('results-29-Nov-2018_04:41:46.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-29-Nov-2018_22:45:13.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-03-Dec-2018_13:12:23.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-03-Dec-2018_14:22:34.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-03-Dec-2018_15:32:52.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-03-Dec-2018_16:41:21.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-03-Dec-2018_17:49:02.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-% load('results-04-Dec-2018_15:05:21.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
-
-%% Parse inputs
-chGain = abs(chTot);
-[X,Y] = meshgrid(elevList,azimList);
-dim = size(X,1)*size(X,2);
-plotIdx = 1;
-
-%% Parse exhaustive
-Z_prel = zeros(nTxAntennas,length(elevList)*length(azimList));
-Z = zeros(length(azimList),length(elevList),nTxAntennas);
-for id = 1:nTxAntennas
-    for t = 1:dim
-        elev = X(t);
-        azym = Y(t);
-        idx_elev = find(appliedElev==elev);
-        idx_azym = find(appliedAzym==azym);
-        idx = intersect(idx_elev,idx_azym);
-        Z_prel(id,t) = mean(chGain(id,idx));
-    end
-    Z(:,:,id) = reshape(Z_prel(id,:),[size(X,1),size(X,2)]);
-end
-
-% %% Test Fixed 
-% n_samples = 10;
-% for id = 1:nTxAntennas
-%     % New interpolated input (assume this is the real exhaustive)
-%     elevList_int = (max(elevList):-1:min(elevList));
-%     azimList_int = (max(azimList):-1:min(azimList));
-%     [X0,Y0] = meshgrid(elevList_int,azimList_int);
-%     Z0(:,:,id) = interp2(X,Y,Z(:,:,id),X0,Y0,'spline');  %#ok
-% 
-%     % Generate Exhaustive image
-%     subplot(nTxAntennas,4,plotIdx); hold on;  plotIdx = plotIdx + 1;
-%     imagesc(X0(1,:),Y0(:,1),Z0(:,:,id)); axis image; axis xy
-% 
-%     % Sample the space
-%     combo = combvec(elevList_int,azimList_int);  % Truth table
-%     samp_ids = randperm(length(combo));  % Generate Random sequence (no EI for now)
-%     samples = combo(:,samp_ids(1:n_samples));  % Extract samples Elevations and Azimuths
-%     elev_sample = samples(1,:);
-%     azim_sample = samples(2,:);
-%     
-% %     % Combo 1    
-% %     elev_sample = [20 20 20 60 60 60 80 80 80];
-% %     azim_sample = [40 90 140 40 90 140 40 90 140];
-% %     % Combo 2
-% %     elev_sample = [20 20 80 80];
-% %     azim_sample = [40 140 40 140];
-%     
-%     [X_sample,Y_sample] = meshgrid(elev_sample,azim_sample);
-%     Z_sample = interp2(X0,Y0,Z0(:,:,id),X_sample,Y_sample);
-%     plot(elev_sample,azim_sample,'+r','MarkerSize',5);
-%     title('Real Map and sampling');
-% 
-%     % calculate the sample variogram
-%     a = reshape(X_sample,[size(X_sample,1)*size(X_sample,2),1]);
-%     b = reshape(Y_sample,[size(Y_sample,1)*size(Y_sample,2),1]);
-%     c = reshape(Z_sample,[size(Z_sample,1)*size(Z_sample,2),1]);
-%     v = variogram([a b],c,'plotit',false,'maxdist',100);
-% 
-%     % Compute Gaussian fit following Least Squares
-%      subplot(nTxAntennas,4,plotIdx); hold on;  plotIdx = plotIdx + 1;
-%     [~,~,~,vstruct] = variogramfit(v.distance,v.val,[],[],[],'model','gaussian');
-%     title('Prior fitting: Spatial correlation');
-% 
-%     % now use the sampled locations in a kriging
-%     subplot(nTxAntennas,4,plotIdx); hold on;  plotIdx = plotIdx + 1;
-%     [Zhat,Zvar] = kriging(vstruct,X_sample,Y_sample,Z_sample,X0,Y0);
-%     imagesc(X0(1,:),Y0(:,1),Zhat); axis image; axis xy
-%     title('kriging predictions')
-% 
-%     subplot(nTxAntennas,4,plotIdx); hold on;  plotIdx = plotIdx + 1;
-%     contour(X0,Y0,Zvar); axis image
-% %     contourf(Zvar);
-%     title('kriging variance')
-% end
-
-%% Test Progressive
-n_samples     = 50;    % Maximum number of samples to run Kriging with
-minSamples    = 15;     % Minimum Kriging initialization space
+%% PARAMETERS
+n_samples     = 15;    % Maximum number of samples to run Kriging with
+minSamples    = 6;     % Minimum Kriging initialization space
 new_additions = 1;     % New trials per iteration
 newAddPoss    = 4;     % New possible possitions for DIRECT
-id            = 3;     % For instance, could be 1,2,3,4 (antenna id)
+nIter         = 1;    % Iterations to run Random over
+antID         = 1;     % Antenna ID, could be 1,2,3,4
+expID         = 3;     % Experiment ID, could be 1,2,3,4,5
 plotFlag      = true;  % Flag to plot results
+
+%% PARSE Data if not done before
+if ~exist('outdoor','var') || ~exist('indoor','var')
+    CBG_parse_experiments;  % Parse data into structs 'indoor', 'outdoor'
+end
+elevList = indoor.elevList;
+azimList = indoor.azimList;
+[X,Y] = meshgrid(elevList,azimList);  % Orientation space (exhaustive)
+Z = indoor.gainTot(:,:,antID,expID);  % Channel gain (exhaustive)
 
 nSamplesList = minSamples:new_additions:n_samples;  % List of samples to try
 
@@ -112,29 +28,54 @@ nSamplesList = minSamples:new_additions:n_samples;  % List of samples to try
 elevList_int = (max(elevList):-1:min(elevList));
 azimList_int = (max(azimList):-1:min(azimList));
 [X0,Y0] = meshgrid(elevList_int,azimList_int);
-Z0 = interp2(X,Y,Z(:,:,id),X0,Y0,'spline');
+Z0 = interp2(X,Y,Z,X0,Y0,'spline');
 
 % Performance indicators - VARIANCE
-avVar_random = zeros(size(nSamplesList));
+avVar_random = zeros(size(nSamplesList));  % DIRECT random
 maxVar_random = zeros(size(nSamplesList));
 minVar_random = zeros(size(nSamplesList));
-avVar_DIRECTrandom = zeros(size(nSamplesList));
+avVar_DIRECTrandom = zeros(size(nSamplesList));  % DIRECT random  
 maxVar_DIRECTrandom = zeros(size(nSamplesList));
 minVar_DIRECTrandom = zeros(size(nSamplesList));
-avVar_DIRECTminVar = zeros(size(nSamplesList));
+avVar_DIRECTminVar = zeros(size(nSamplesList));  % DIRECT minVar  
 maxVar_DIRECTminVar = zeros(size(nSamplesList));
 minVar_DIRECTminVar = zeros(size(nSamplesList));
+avVar_UM = zeros(size(nSamplesList));  % Uncertainty minimization
+maxVar_UM = zeros(size(nSamplesList));
+minVar_UM = zeros(size(nSamplesList));
 
 % Performance indicators - OPTIMUM ANGLE PREDICTION and GAIN PREDICTION
-pred_azim_random = zeros(size(nSamplesList));
-pred_azim_DIRECTrandom = zeros(size(nSamplesList));
-pred_azim_DIRECTminVar = zeros(size(nSamplesList));
-pred_elev_random = zeros(size(nSamplesList));
-pred_elev_DIRECTrandom = zeros(size(nSamplesList));
-pred_elev_DIRECTminVar = zeros(size(nSamplesList));
-pred_gain_random = zeros(size(nSamplesList));
-pred_gain_DIRECTrandom = zeros(size(nSamplesList));
-pred_gain_DIRECTminVar = zeros(size(nSamplesList));
+ml_random_pred_azim = zeros(size(nSamplesList));  % Random
+ml_random_pred_elev = zeros(size(nSamplesList));
+ml_random_pred_gain = zeros(size(nSamplesList));
+ml_random_real_gain = zeros(size(nSamplesList));
+ml_random_pred_gap_gain = zeros(size(nSamplesList));
+ml_random_real_gap_gain = zeros(size(nSamplesList));
+ml_DIRECTrandom_pred_azim = zeros(size(nSamplesList));  % DIRECT random  
+ml_DIRECTrandom_pred_elev = zeros(size(nSamplesList));
+ml_DIRECTrandom_pred_gain = zeros(size(nSamplesList));
+ml_DIRECTrandom_real_gain = zeros(size(nSamplesList));
+ml_DIRECTrandom_pred_gap_gain = zeros(size(nSamplesList));
+ml_DIRECTrandom_real_gap_gain = zeros(size(nSamplesList));
+ml_DIRECTminVar_pred_azim = zeros(size(nSamplesList));  % DIRECT minVar  
+ml_DIRECTminVar_pred_elev = zeros(size(nSamplesList));
+ml_DIRECTminVar_pred_gain = zeros(size(nSamplesList));
+ml_DIRECTminVar_real_gain = zeros(size(nSamplesList));
+ml_DIRECTminVar_pred_gap_gain = zeros(size(nSamplesList));
+ml_DIRECTminVar_real_gap_gain = zeros(size(nSamplesList));
+ml_UM_pred_azim = zeros(size(nSamplesList));  % Uncertainty minimization
+ml_UM_pred_elev = zeros(size(nSamplesList));
+ml_UM_pred_gain = zeros(size(nSamplesList));
+ml_UM_real_gain = zeros(size(nSamplesList));
+ml_UM_pred_gap_gain = zeros(size(nSamplesList));
+ml_UM_real_gap_gain = zeros(size(nSamplesList));
+
+% Extra results for Random 
+avVar_random1 = zeros(length(nSamplesList),nIter);
+maxVar_random1 = zeros(length(nSamplesList),nIter);
+minVar_random1 = zeros(length(nSamplesList),nIter);
+ml_random_pred_gain1 = zeros(length(nSamplesList),nIter);
+ml_random_real_gain1 = zeros(length(nSamplesList),nIter);
 
 % Performance indicators - RELIABILITY on predicted MAP
 missmatch_random = zeros(size(nSamplesList));
@@ -143,292 +84,390 @@ missmatch_DIRECTminVar = zeros(size(nSamplesList));
 
 % find optimum angles - Exhaustive
 [exhv_gain, max_idx] = max(Z0(:));
-[indexX,indexY] = ind2sub(size(Z0),max_idx);
-exhv_elevation = X0(indexX,indexY);
-exhv_azimuth = Y0(indexX,indexY);
-pred_azim_exhaust = repmat(exhv_azimuth,size(nSamplesList));
-pred_elev_exhaust = repmat(exhv_elevation,size(nSamplesList));
-pred_gain_exhaust = repmat(exhv_gain,size(nSamplesList));
+[idx_exhv_maxGain_X,idx_exhv_maxGain_Y] = ind2sub(size(Z0),max_idx);
+exhv_elevation = X0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+exhv_azimuth = Y0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+exhv_azimtuh_long = repmat(exhv_azimuth,size(nSamplesList));
+exhv_elevation_long = repmat(exhv_elevation,size(nSamplesList));
+exhv_gain_long = repmat(exhv_gain,size(nSamplesList));
 
-selPolicyList = {'DIRECT-minVar','random','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'DIRECT-rand', 'DIRECT-minVar'
-for pol = selPolicyList
+selPolicyList = {'DIRECT-minVar','UM','DIRECT-rand','random'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+for polIdx = 1:length(selPolicyList)
+
+    selPolicy = selPolicyList{polIdx};
+    fprintf('Executing with policy "%s"\n',selPolicy);
     
-    fprintf('Executing with policy "%s"\n',pol{:});
-    selPolicy = pol{:};
-    
-    % Initialize Sampling
-    if strcmp(selPolicy,'random')
-        % Initialize random space sampling
-        combo = combvec(elevList_int,azimList_int);  % Truth table
-        samp_ids = randperm(length(combo));  % Generate Random sequence (no EI for now)
-        samples = combo(:,samp_ids(1:n_samples));  % Extract samples Elevations and Azimuths
-        elev_sample_random = samples(1,:);
-        azim_sample_random = samples(2,:);
-        elev_sample1 = elev_sample_random(1:minSamples);  % Store the sampled elevation angles
-        azim_sample1 = azim_sample_random(1:minSamples);  % Store the sampled azimuth angles
-    elseif strcmp(selPolicy,'EI')
-        % To-do
-    elseif strcmp(selPolicy,'PI')
-        % To-do
-    elseif strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
-        % Initialize DIRECT
-        selPoss = CBG_DIRECT([0 180], [0 90], minSamples);
-        % Plot Initial DIRECT configuration
-        if plotFlag
-            figure(2); cla reset; hold on;
-            scatter(selPoss(1,1,:),selPoss(1,2,:))
-            for t = 1:newAddPoss
-                plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',2)
-                plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',2)
-            end
-            hold off;
-        end
-        % First, select the samples to trye (special case, more than one)
-        elev_sample1 = selPoss(1,2,:);  elev_sample1 = elev_sample1(:).';
-        azim_sample1 = selPoss(1,1,:);  azim_sample1 = azim_sample1(:).';
-        % Second, initialize massively DIRECT (special case, more than one)
-        for selTrial = 1:newAddPoss
-            selCenter = selPoss(1,:,selTrial);
-            selLimAzim = selPoss(2,:,selTrial);
-            selLimElev = selPoss(3,:,selTrial);
-            % Second, break down the new area into new sub-areas using DIRECT
-            addSelPoss = CBG_DIRECT(selLimAzim,selLimElev,newAddPoss);
-            % Append new sub-area to global area
-            selPoss = cat(3, selPoss, addSelPoss);
-        end
-        % Remove explored possibility from selection set
-        selPoss(:,:,1:newAddPoss) = [];
+    if strcmp(selPolicy,'random');  iterAverage = 1;  % Random executed several times and averaged
+    else;                           iterAverage = nIter;  % Any other policy only executed once
     end
 
-    count = 1;  % To index results into storing
-    for iter = nSamplesList
-
-        [X_sample,Y_sample] = meshgrid(elev_sample1,azim_sample1);
-        Z_sample = interp2(X0,Y0,Z0,X_sample,Y_sample);
-
-        % calculate the sample variogram
-        a = reshape(X_sample,[size(X_sample,1)*size(X_sample,2),1]);
-        b = reshape(Y_sample,[size(Y_sample,1)*size(Y_sample,2),1]);
-        c = reshape(Z_sample,[size(Z_sample,1)*size(Z_sample,2),1]);
-        v = variogram([a b],c,'maxdist',100,'plotit',false);
-
-        % compute Gaussian fit following Least Squares
-        [~,~,~,vstruct] = variogramfit(v.distance,v.val,[],[],[],'model','gaussian','plotit',false);
-
-        % use the sampled locations in a kriging
-        [Zhat,Zvar] = kriging(vstruct,X_sample,Y_sample,Z_sample,X0,Y0);
-        
-        % find optimum angles - prediction
-        [pred_gain, max_idx] = max(Zhat(:));
-        [X,Y] = ind2sub(size(Zhat),max_idx);
-        pred_elevation = X0(X,Y);
-        pred_azimuth = Y0(X,Y);
-
-        if plotFlag
-            
-            % Plot DIRECT map
-            if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
-                % Plot possibilities
-                figure(2); cla reset; hold on;
-                scatter(selPoss(1,1,:),selPoss(1,2,:))
-                for t = 1:size(selPoss,3)
-                    plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',2)
-                    plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',2)
-                end
-            end
-
-            % Plot exhaustive, predictions and uncertainty
-            figure(1); 
-
-            ax = subplot(1,4,1); cla reset; hold on;
-            brewermap('*RdBu');
-            colormap(ax,'brewermap');
-            colorbar('eastoutside');
-            imagesc(X0(1,:),Y0(:,1),Z0); axis image; axis xy  % Generate Exhaustive image
-            plot(elev_sample1,azim_sample1,'+r','MarkerSize',5);  % Plot trials so far
-            mystr = strcat('#',num2str(iter),{' '},'Real+sampling');
-            title(mystr);
-            hold off
-
-            ax = subplot(1,4,2); cla reset;
-            imagesc(X0(1,:),Y0(:,1),Zhat); axis image; axis xy;
-            brewermap('*RdBu');
-            colormap(ax,'brewermap');
-            colorbar('eastoutside');
-            mystr = strcat('#',num2str(iter),{' '},'kriging predictions');
-            title(mystr);
-
-            ax = subplot(1,4,3); cla reset;
-            contourf(X0,Y0,Zvar);
-            mystr = strcat('#',num2str(iter),{' '},'kriging variance');
-            title(mystr);
-            brewermap('*RdBu');
-            colormap(ax,'brewermap');
-            colorbar('eastoutside');
-
-            ax = subplot(1,4,4); cla reset;
-            plot(abs(Zvar(:)));
-            brewermap('*RdBu');
-            colormap(ax,'brewermap');
-            colorbar('eastoutside');
-            mystr = strcat('#',num2str(iter),{' '},'Overall variance');
-            title(mystr);
-        end
-
-        % Select next trial upong selection policy
-        if strcmp(selPolicy,'random')
-            elev_sample1 = elev_sample_random(1:iter);
-            azim_sample1 = azim_sample_random(1:iter);
-            % Store results - variance
-            avVar_random(count) = mean(abs(Zvar(:)));
-            maxVar_random(count) = max(abs(Zvar(:)));
-            minVar_random(count) = min(abs(Zvar(:)));
-            % Store results - predictions
-            pred_azim_random(count) = pred_azimuth;
-            pred_elev_random(count) = pred_elevation;
-            pred_gain_random(count) = pred_gain;
+    % This loops will be executed only once for 
+    while(iterAverage<=nIter)
+    
+        % Initialize Sampling
+        if strcmp(selPolicy,'random') || strcmp(selPolicy,'UM') || strcmp(selPolicy,'EI') || strcmp(selPolicy,'PI')
+            % Initialize random space sampling
+            combo = combvec(elevList_int,azimList_int);  % Truth table
+            samp_ids = randperm(length(combo));  % Generate Random sequence (no EI for now)
+            samples = combo(:,samp_ids(1:n_samples));  % Extract samples Elevations and Azimuths
+            elev_sample_random = samples(1,:);
+            azim_sample_random = samples(2,:);
+            elev_sample1 = elev_sample_random(1:minSamples);  % Store the sampled elevation angles
+            azim_sample1 = azim_sample_random(1:minSamples);  % Store the sampled azimuth angles
         elseif strcmp(selPolicy,'EI')
             % To-do
         elseif strcmp(selPolicy,'PI')
             % To-do
-        elseif strcmp(selPolicy,'DIRECT-rand')
-            % First, select sample following a random selection
-            possIndices = size(selPoss,3);
-            selTrial = randi([1 possIndices]);
-            % Retrieve results
-            selCenter = selPoss(1,:,selTrial);
-            selLimAzim = selPoss(2,:,selTrial);
-            selLimElev = selPoss(3,:,selTrial);
-            % Second, break down the new area into new sub-areas using DIRECT
-            addSelPoss = CBG_DIRECT(selLimAzim,selLimElev,newAddPoss);
-            % Remove explored possibility from selection set
-            selPoss(:,:,selTrial) = [];
-            % Append new sub-area to global area
-            selPoss = cat(3, selPoss, addSelPoss);
-            % Select actual azimuth and elevation to evaluate with kriging
-            elev_sample1 = [elev_sample1 selCenter(2)];  %#ok<AGROW>
-            azim_sample1 = [azim_sample1 selCenter(1)];  %#ok<AGROW>
-            % Store results - variance
-            avVar_DIRECTrandom(count) = mean(abs(Zvar(:)));
-            maxVar_DIRECTrandom(count) = max(abs(Zvar(:)));
-            minVar_DIRECTrandom(count) = min(abs(Zvar(:)));
-            % Store results - predictions
-            pred_azim_DIRECTrandom(count) = pred_azimuth;
-            pred_elev_DIRECTrandom(count) = pred_elevation;
-            pred_gain_DIRECTrandom(count) = pred_gain;
-        elseif strcmp(selPolicy,'DIRECT-minVar')
-            % First, select sample with lowest variance
-            myAzims = selPoss(1,1,:);   myAzims = myAzims(:);
-            myElevs = selPoss(1,2,:);   myElevs = myElevs(:);
-            myX0 = X0(:);  myY0 = Y0(:);  myZvar = Zvar(:);
-            myY01 = repmat(myY0,1,length(myAzims)).';
-            myX01 = repmat(myX0,1,length(myElevs)).';
-            myIndices = zeros(1,length(myAzims));
-            for temp = 1:length(myAzims)
-                test_azim = find(myY0==ceil(myAzims(temp)));  %Swap them, needed
-                test_elev = find(myX0==ceil(myElevs(temp)));  %Swap them, needed
-                myIndices(temp) = intersect(test_azim,test_elev);
+        elseif strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
+            % Initialize DIRECT
+            selPoss = CBG_DIRECT([0 90],[0 180],minSamples);
+            % Plot Initial DIRECT configuration
+            if plotFlag;    CBG_DIRECTplot(selPoss,2);   end
+            % First, select the samples to try (special case, more than one)
+            elev_sample1 = selPoss(1,1,:);  elev_sample1 = elev_sample1(:).';
+            azim_sample1 = selPoss(1,2,:);  azim_sample1 = azim_sample1(:).';
+            % Second, initialize massively DIRECT (special case, more than one)
+            for selTrial = 1:size(selPoss,3)
+                selCenter = selPoss(1,:,selTrial);
+                selLimElev = selPoss(2,:,selTrial);
+                selLimAzim = selPoss(3,:,selTrial);
+                % Second, break down the new area into new sub-areas using DIRECT
+                addSelPoss = CBG_DIRECT(selLimElev,selLimAzim,newAddPoss);
+                % Append new sub-area to global area
+                selPoss = cat(3, selPoss, addSelPoss);
             end
-            [~,selTrial] = max(myZvar(myIndices));
-            % Retrieve results
-            selCenter = selPoss(1,:,selTrial);
-            selLimAzim = selPoss(2,:,selTrial);
-            selLimElev = selPoss(3,:,selTrial);
-            % Second, break down the new area into new sub-areas using DIRECT
-            addSelPoss = CBG_DIRECT(selLimAzim,selLimElev,newAddPoss);
             % Remove explored possibility from selection set
-            selPoss(:,:,selTrial) = [];
-            % Append new sub-area to global area
-            selPoss = cat(3, selPoss, addSelPoss);
-            % Select actual azimuth and elevation to evaluate with kriging
-            elev_sample1 = [elev_sample1 selCenter(2)];  %#ok<AGROW>
-            azim_sample1 = [azim_sample1 selCenter(1)];  %#ok<AGROW>
-            % Store results - variance
-            avVar_DIRECTminVar(count) = mean(abs(Zvar(:)));
-            maxVar_DIRECTminVar(count) = max(abs(Zvar(:)));
-            minVar_DIRECTminVar(count) = min(abs(Zvar(:)));
-            % Store results - predictions
-            pred_azim_DIRECTminVar(count) = pred_azimuth;
-            pred_elev_DIRECTminVar(count) = pred_elevation;
-            pred_gain_DIRECTminVar(count) = pred_gain;
+            selPoss(:,:,1:minSamples) = [];
         end
-        
-        % Update counter for results
-        count = count + 1;
+
+        count = 1;  % To index results into storing
+        for nSamples = nSamplesList
+
+            [X_sample,Y_sample] = meshgrid(elev_sample1,azim_sample1);
+            Z_sample = interp2(X0,Y0,Z0,X_sample,Y_sample);
+
+            % calculate the sample variogram
+            a = reshape(X_sample,[size(X_sample,1)*size(X_sample,2),1]);
+            b = reshape(Y_sample,[size(Y_sample,1)*size(Y_sample,2),1]);
+            c = reshape(Z_sample,[size(Z_sample,1)*size(Z_sample,2),1]);
+            v = variogram([a b],c,'maxdist',100,'plotit',false);
+
+            % compute Gaussian fit following Least Squares
+            [~,~,~,vstruct] = variogramfit(v.distance,v.val,[],[],[],'model','gaussian','plotit',false);
+
+            % use the sampled locations in a kriging
+            [Zhat,Zvar] = kriging(vstruct,X_sample,Y_sample,Z_sample,X0,Y0);
+
+            % find optimum angles - prediction
+            [pred_gain, max_idx] = max(Zhat(:));  % Predicted gain
+            [idx_pred_maxGain_X,idx_pred_maxGain_Y] = ind2sub(size(Zhat),max_idx);
+            pred_elevation = X0(idx_pred_maxGain_X,idx_pred_maxGain_Y);  % Selected Elevation
+            pred_azimuth = Y0(idx_pred_maxGain_X,idx_pred_maxGain_Y);  % Selected Azimuth
+            pred_gain_real = Z0(idx_pred_maxGain_X,idx_pred_maxGain_Y);  % Real achieved gain
+
+            if plotFlag
+
+                % Plot DIRECT map
+                if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
+                    CBG_DIRECTplot(selPoss,2);
+                end
+
+                % Plot exhaustive, predictions and uncertainty
+                figure(1); 
+
+                ax = subplot(1,4,1); cla reset; hold on;
+                brewermap('*RdBu');
+                colormap(ax,'brewermap');
+                colorbar('eastoutside');
+                imagesc(X0(1,:),Y0(:,1),Z0); axis image; axis xy  % Generate Exhaustive image
+                p1 = plot(elev_sample1,azim_sample1,'+r','MarkerSize',5);  % Plot trials so far
+                p2 = plot(exhv_elevation,exhv_azimuth,'sk','MarkerSize',10,'MarkerFaceColor','k');  % Plot trials so far
+                p3 = plot(pred_elevation,pred_azimuth,'sy','MarkerSize',10,'MarkerFaceColor','y');  % Plot trials so far
+                mystr = strcat('#',num2str(nSamples),{' '},'Real+sampling');
+    %             legend([p1 p2 p3],{'Trials','Optimum','Selected'})
+                title(mystr);
+                hold off
+
+                ax = subplot(1,4,2); cla reset;
+                imagesc(X0(1,:),Y0(:,1),Zhat); axis image; axis xy;
+                brewermap('*RdBu');
+                colormap(ax,'brewermap');
+                colorbar('eastoutside');
+                mystr = strcat('#',num2str(nSamples),{' '},'kriging predictions');
+                title(mystr);
+
+                ax = subplot(1,4,3); cla reset;
+                contourf(X0,Y0,Zvar);
+                mystr = strcat('#',num2str(nSamples),{' '},'kriging variance');
+                title(mystr);
+                brewermap('*RdBu');
+                colormap(ax,'brewermap');
+                colorbar('eastoutside');
+
+                ax = subplot(1,4,4); cla reset;
+                plot(abs(Zvar(:)));
+                brewermap('*RdBu');
+                colormap(ax,'brewermap');
+                colorbar('eastoutside');
+                mystr = strcat('#',num2str(nSamples),{' '},'Overall variance');
+                title(mystr);
+            end
+
+            % Select next trial upong selection policy
+            if strcmp(selPolicy,'random')
+                elev_sample1 = elev_sample_random(1:nSamples);
+                azim_sample1 = azim_sample_random(1:nSamples);
+                % Store results - variance
+                avVar_random1(count,iterAverage) = mean(abs(Zvar(:)));
+                maxVar_random1(count,iterAverage) = max(abs(Zvar(:)));
+                minVar_random1(count,iterAverage) = min(abs(Zvar(:)));
+                % Store results - predictions
+                ml_random_pred_azim(count,iterAverage) = pred_azimuth;
+                ml_random_pred_elev(count,iterAverage) = pred_elevation;
+                ml_random_pred_gain1(count,iterAverage) = pred_gain;
+                ml_random_real_gain1(count,iterAverage) = pred_gain_real;
+            elseif strcmp(selPolicy,'EI')
+                % To-do
+            elseif strcmp(selPolicy,'PI')
+                % To-do
+            elseif strcmp(selPolicy,'UM')
+                % First, select sample with lowest variance
+                [~,trialsSort] = sort(Zvar(:),'descend') ;
+                selTrials = trialsSort(1:new_additions).';
+                for selTrial = selTrials
+                    % Something here
+                    [idx_exhv_maxGain_X,idx_exhv_maxGain_Y] = ind2sub(size(Zvar),selTrial);
+                    sel_elevation = X0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+                    sel_azimuth = Y0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+                    % Select actual azimuth and elevation to evaluate with kriging
+                    elev_sample1 = [elev_sample1 sel_elevation];  %#ok<AGROW>
+                    azim_sample1 = [azim_sample1 sel_azimuth];  %#ok<AGROW>
+                end
+                % Store results - variance
+                avVar_UM(count) = mean(abs(Zvar(:)));
+                maxVar_UM(count) = max(abs(Zvar(:)));
+                minVar_UM(count) = min(abs(Zvar(:)));
+                % Store results - predictions
+                ml_UM_pred_azim(count) = pred_azimuth;
+                ml_UM_pred_elev(count) = pred_elevation;
+                ml_UM_pred_gain(count) = pred_gain;
+                ml_UM_real_gain(count) = pred_gain_real;
+                ml_UM_pred_gap_gain(count) = exhv_gain - pred_gain;
+                ml_UM_real_gap_gain(count) = exhv_gain - pred_gain_real;
+            elseif strcmp(selPolicy,'DIRECT-rand')
+                % First, select sample following a random selection
+                selTrials = randperm(size(selPoss,3));
+                selTrials = selTrials(1:new_additions);
+                for selTrial = selTrials
+                    % Retrieve results
+                    selCenter = selPoss(1,:,selTrial);
+                    selLimElev = selPoss(2,:,selTrial);
+                    selLimAzim = selPoss(3,:,selTrial);
+                    % Second, break down the new area into new sub-areas using DIRECT
+                    addSelPoss = CBG_DIRECT(selLimElev,selLimAzim,newAddPoss);
+                    % Append new sub-area to global area
+                    selPoss = cat(3, selPoss, addSelPoss);
+                    % Select actual azimuth and elevation to evaluate with kriging
+                    elev_sample1 = [elev_sample1 selCenter(1)];  %#ok<AGROW>
+                    azim_sample1 = [azim_sample1 selCenter(2)];  %#ok<AGROW>
+                end
+                % Remove explored possibility from selection set
+                selPoss(:,:,selTrials) = [];
+                % Store results - variance
+                avVar_DIRECTrandom(count) = mean(abs(Zvar(:)));
+                maxVar_DIRECTrandom(count) = max(abs(Zvar(:)));
+                minVar_DIRECTrandom(count) = min(abs(Zvar(:)));
+                % Store results - predictions
+                ml_DIRECTrandom_pred_azim(count) = pred_azimuth;
+                ml_DIRECTrandom_pred_elev(count) = pred_elevation;
+                ml_DIRECTrandom_pred_gain(count) = pred_gain;
+                ml_DIRECTrandom_real_gain(count) = pred_gain_real;
+                ml_DIRECTrandom_pred_gap_gain(count) = exhv_gain - ml_DIRECTrandom_pred_gain(count);
+                ml_DIRECTrandom_real_gap_gain(count) = exhv_gain - ml_DIRECTrandom_real_gain(count);
+            elseif strcmp(selPolicy,'DIRECT-minVar')
+                % First, select sample with lowest variance
+                myElevs = selPoss(1,1,:);   myElevs = myElevs(:);
+                myAzims = selPoss(1,2,:);   myAzims = myAzims(:);
+                myX0 = X0(:);  myY0 = Y0(:);  myZvar = Zvar(:);
+                myX01 = repmat(myX0,1,length(myAzims)).';
+                myY01 = repmat(myY0,1,length(myElevs)).';
+                myIndices = zeros(1,length(myAzims));
+                for temp = 1:length(myAzims)
+                    test_azim = find(myY0==ceil(myAzims(temp)));  %Swap them, needed
+                    test_elev = find(myX0==ceil(myElevs(temp)));  %Swap them, needed
+                    myIndices(temp) = intersect(test_azim,test_elev);
+                end
+                [B,trialsSort] = sort(myZvar(myIndices),'descend') ;
+                selTrials = trialsSort(1:new_additions).';
+                for selTrial = selTrials
+                    % Retrieve results
+                    selCenter = selPoss(1,:,selTrial);
+                    selLimElev = selPoss(2,:,selTrial);
+                    selLimAzim = selPoss(3,:,selTrial);
+                    % Second, break down the new area into new sub-areas using DIRECT
+                    addSelPoss = CBG_DIRECT(selLimElev,selLimAzim,newAddPoss);
+                    % Append new sub-area to global area
+                    selPoss = cat(3, selPoss, addSelPoss);
+                    % Select actual azimuth and elevation to evaluate with kriging
+                    elev_sample1 = [elev_sample1 selCenter(1)];  %#ok<AGROW>
+                    azim_sample1 = [azim_sample1 selCenter(2)];  %#ok<AGROW>
+                end
+                % Remove explored possibility from selection set
+                selPoss(:,:,selTrials) = [];
+                % Store results - variance
+                avVar_DIRECTminVar(count) = mean(abs(Zvar(:)));
+                maxVar_DIRECTminVar(count) = max(abs(Zvar(:)));
+                minVar_DIRECTminVar(count) = min(abs(Zvar(:)));
+                % Store results - predictions
+                ml_DIRECTminVar_pred_azim(count) = pred_azimuth;
+                ml_DIRECTminVar_pred_elev(count) = pred_elevation;
+                ml_DIRECTminVar_pred_gain(count) = pred_gain;
+                ml_DIRECTminVar_real_gain(count) = pred_gain_real;
+                ml_DIRECTminVar_pred_gap_gain(count) = exhv_gain - pred_gain;
+                ml_DIRECTminVar_real_gap_gain(count) = exhv_gain - pred_gain_real;
+            end
+
+            % Update counter for results
+            count = count + 1;
+        end
+
+        % Average Random results and store in global variable
+        if strcmp(selPolicy,'random')
+            % Store results - variance
+            avVar_random = mean(avVar_random1,2);
+            maxVar_random = mean(maxVar_random1,2);
+            minVar_random = mean(minVar_random1,2);
+            % Store results - gain
+            ml_random_pred_gain = mean(ml_random_pred_gain1,2);
+            ml_random_real_gain = mean(ml_random_real_gain1,2);
+            ml_random_pred_gap_gain = exhv_gain - ml_random_pred_gain;
+            ml_random_real_gap_gain = exhv_gain - ml_random_real_gain;
+        end
+    
+        % Increase averaging index
+        iterAverage = iterAverage + 1;
     end
-    % Clean intermediate variables
 end
 
-figure(3); hold on;
-plot(nSamplesList,avVar_random,'lineWidth',2);
-plot(nSamplesList,avVar_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,avVar_DIRECTminVar,'lineWidth',2);
+figIdx = 3;
+%% AVERAGE VARIANCE
+% figure(figIdx); figIdx = figIdx + 1; hold on;
+% plot(nSamplesList,avVar_random,'lineWidth',2);
+% plot(nSamplesList,avVar_DIRECTrandom,'lineWidth',2);
+% plot(nSamplesList,avVar_DIRECTminVar,'lineWidth',2);
+% grid minor;
+% lg = legend('Random - Random','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',10);
+% title('analysis on the AVERAGE Variance achieved','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('Variance','FontSize',12);
+% hold off;
+%% MAXIMUM VARIANCE
+% figure(figIdx); figIdx = figIdx + 1; hold on;
+% plot(nSamplesList,maxVar_random,'lineWidth',2);
+% plot(nSamplesList,maxVar_DIRECTrandom,'lineWidth',2);
+% plot(nSamplesList,maxVar_DIRECTminVar,'lineWidth',2);
+% grid minor;
+% lg = legend('Random - Random','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',10);
+% title('analysis on the MAX Variance achieved','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('Variance','FontSize',12);
+%% MINIMUM VARIANCE
+% figure(figIdx); figIdx = figIdx + 1; hold on;
+% plot(nSamplesList,minVar_random,'lineWidth',2);
+% plot(nSamplesList,minVar_DIRECTrandom,'lineWidth',2);
+% plot(nSamplesList,minVar_DIRECTminVar,'lineWidth',2);
+% grid minor;
+% lg = legend('Random - Random','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',10);
+% title('analysis on the MIN Variance achieved','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('Variance','FontSize',12);
+% hold off
+%% PREDICTED GAIN
+figure(figIdx); figIdx = figIdx + 1; hold on;
+plot(nSamplesList,ml_random_pred_gain,'lineWidth',2);
+plot(nSamplesList,ml_UM_pred_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTrandom_pred_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTminVar_pred_gain,'lineWidth',2);
+plot(nSamplesList,exhv_gain_long,'lineWidth',2);
 grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel');
-set(lg,'FontSize',12);
-title('analysis on the AVERAGE Variance achieved','FontSize',12);
+lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.','Optimum');
+set(lg,'FontSize',8);
+title('PREDICTED MAX GAIN achieved','FontSize',12);
 xlabel('Number of trials','FontSize',12);
 ylabel('Variance','FontSize',12);
 hold off;
-
-figure(4); hold on;
-plot(nSamplesList,maxVar_random,'lineWidth',2);
-plot(nSamplesList,maxVar_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,maxVar_DIRECTminVar,'lineWidth',2);
+%% PREDICTED GAIN (BAR)
+% groupLabels = {nSamplesList};  % labels to use on tick marks for groups
+% stackData = [ml_random_pred_gain ml_UM_pred_gain.' ml_DIRECTrandom_pred_gain.' ml_DIRECTminVar_pred_gain.' exhv_gain_long.'];
+% plotBarStackGroups(stackData, groupLabels,figIdx);  figIdx = figIdx + 1; hold on; 
+% lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',8);
+% title('analysis on the MAX GAIN achieved','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('channel gain (linear)','FontSize',12);
+% grid minor;
+%% PREDICTED AZIMUTH
+% figure(figIdx); figIdx = figIdx + 1; hold on;
+% plot(nSamplesList,ml_random_pred_azim,'lineWidth',2);
+% plot(nSamplesList,ml_UM_pred_azim,'lineWidth',2);
+% plot(nSamplesList,ml_DIRECTrandom_pred_azim,'lineWidth',2);
+% plot(nSamplesList,ml_DIRECTminVar_pred_azim,'lineWidth',2);
+% plot(nSamplesList,exhv_azimuth,'lineWidth',2);
+% grid minor;
+% lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',8);
+% title('analysis on the AZIMUTH prediction','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('Variance','FontSize',12);
+% hold off;
+%% PREDICTED ELEVATION
+% figure(figIdx); figIdx = figIdx + 1; hold on; 
+% plot(nSamplesList,ml_random_pred_elev,'lineWidth',2);
+% plot(nSamplesList,ml_UM_pred_elev,'lineWidth',2);
+% plot(nSamplesList,ml_DIRECTrandom_pred_elev,'lineWidth',2);
+% plot(nSamplesList,ml_DIRECTminVar_pred_elev,'lineWidth',2);
+% plot(nSamplesList,exhv_elevation,'lineWidth',2);
+% grid minor;
+% lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.','Optimum');
+% set(lg,'FontSize',8);
+% title('analysis on the AZIMUTH prediction','FontSize',12);
+% xlabel('Number of trials','FontSize',12);
+% ylabel('Variance','FontSize',12);
+% hold off;
+%% REAL GAIN ACHIEVED
+figure(figIdx); figIdx = figIdx + 1; hold on;
+plot(nSamplesList,ml_random_real_gain,'lineWidth',2);
+plot(nSamplesList,ml_UM_real_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTrandom_real_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTminVar_real_gain,'lineWidth',2);
+plot(nSamplesList,exhv_gain_long,'lineWidth',2);
 grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel');
-set(lg,'FontSize',12);
-title('analysis on the MAX Variance achieved','FontSize',12);
-xlabel('Number of trials','FontSize',12);
-ylabel('Variance','FontSize',12);
-
-figure(5); hold on;
-plot(nSamplesList,minVar_random,'lineWidth',2);
-plot(nSamplesList,minVar_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,minVar_DIRECTminVar,'lineWidth',2);
-grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel');
-set(lg,'FontSize',12);
-title('analysis on the MIN Variance achieved','FontSize',12);
-xlabel('Number of trials','FontSize',12);
-ylabel('Variance','FontSize',12);
-hold off
-
-figure(6); hold on;
-plot(nSamplesList,pred_gain_random,'lineWidth',2);
-plot(nSamplesList,pred_gain_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,pred_gain_DIRECTminVar,'lineWidth',2);
-plot(nSamplesList,exhv_gain,'lineWidth',2);
-grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel','Optimum Exhaustive');
-set(lg,'FontSize',12);
-title('analysis on the MAX GAIN achieved','FontSize',12);
+lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.','Optimum');
+set(lg,'FontSize',8);
+title('REAL MAX GAIN achieved','FontSize',12);
 xlabel('Number of trials','FontSize',12);
 ylabel('Variance','FontSize',12);
 hold off;
-
-figure(7); hold on;
-plot(nSamplesList,pred_azim_random,'lineWidth',2);
-plot(nSamplesList,pred_azim_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,pred_azim_DIRECTminVar,'lineWidth',2);
-plot(nSamplesList,exhv_azimuth,'lineWidth',2);
+%% REAL GAIN (BAR)
+% groupLabels = {nSamplesList};  % labels to use on tick marks for groups
+% stackData = [ml_random_real_gain ml_DIRECTrandom_real_gain.' ml_DIRECTminVar_real_gain.' exhv_gain_long.'];
+% plotBarStackGroups(stackData, groupLabels,figIdx);  figIdx = figIdx + 1; hold on; 
+% lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel','Optimum Exhaustive');
+% set(lg,'FontSize',12);
+% grid minor;
+%% REAL GAP TO OPTIMUM
+figure(figIdx); figIdx = figIdx + 1; hold on;
+plot(nSamplesList,ml_random_real_gap_gain,'lineWidth',2);
+plot(nSamplesList,ml_UM_real_gap_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTrandom_real_gap_gain,'lineWidth',2);
+plot(nSamplesList,ml_DIRECTminVar_real_gap_gain,'lineWidth',2);
 grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel','Optimum Exhaustive');
-set(lg,'FontSize',12);
-title('analysis on the AZIMUTH prediction','FontSize',12);
-xlabel('Number of trials','FontSize',12);
-ylabel('Variance','FontSize',12);
-hold off;
-
-figure(8); hold on;
-plot(nSamplesList,pred_elev_random,'lineWidth',2);
-plot(nSamplesList,pred_elev_DIRECTrandom,'lineWidth',2);
-plot(nSamplesList,pred_elev_DIRECTminVar,'lineWidth',2);
-plot(nSamplesList,exhv_elevation,'lineWidth',2);
-grid minor;
-lg = legend('RANDOM-samp and RANDOM-sel','DIRECT-samp and RANDOM-sel','DIRECT-samp and MINVAR-sel','Optimum Exhaustive');
-set(lg,'FontSize',12);
-title('analysis on the AZIMUTH prediction','FontSize',12);
+lg = legend('Random - Random','Uncertainty min.','Direct - Random sel.','Direct - minVar sel.');
+set(lg,'FontSize',8);
+title('GAP TO REAL MAX GAIN','FontSize',12);
 xlabel('Number of trials','FontSize',12);
 ylabel('Variance','FontSize',12);
 hold off;

@@ -1,4 +1,4 @@
-function P = CBG_DIRECT(Xlim, Ylim, Nsamples)
+function P = CBG_DIRECT(Xlim, Ylim, Nsamples,varargin)
 % CBG_DIRECT - returns the points equidistant within the area defined by
 % Xlim and Ylim.
 %
@@ -23,8 +23,8 @@ function P = CBG_DIRECT(Xlim, Ylim, Nsamples)
 % See also: To-do
 
 %------------- BEGIN CODE --------------
-n_xdim = ceil(sqrt(Nsamples));
-n_ydim = ceil(Nsamples/n_xdim);
+n_ydim = ceil(sqrt(Nsamples));  % priority to the y dimension
+n_xdim = ceil(Nsamples/n_ydim);  % x dimension retrieves the residual dimension
 NReality = n_xdim * n_ydim;
 
 DeltaX = ( Xlim(2) - Xlim(1) ) / n_xdim;
@@ -49,6 +49,5 @@ for i = 1:NReality
     P(2,:,i) = [Li_x(i) Ls_x(i)];  % Limits X-dimension
     P(3,:,i) = [Li_y(i) Ls_y(i)];  % Limits Y-dimension
 end
-
 
 % EOF
