@@ -1,15 +1,16 @@
 % clear all; clear classes;  %#ok
-% close all; clc;
+close all; clc;
 addpath('kriging/');  % Include Kriging folder (variogram and kriging)
 addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
+set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% PARAMETERS
-n_samples     = 100;    % Maximum number of samples to run Kriging with
-minSamples    = 100;     % Minimum Kriging initialization space
+minSamples    = 4;     % Minimum Kriging initialization space
+n_samples     = 8;    % Maximum number of samples to run Kriging with
 new_additions = 1;     % New trials per iteration
 newAddPoss    = 4;     % New possible possitions for DIRECT
 nIter         = 1;    % Iterations to run Random over
-antID         = 4;     % Antenna ID, could be 1,2,3,4
+antID         = 2;     % Antenna ID, could be 1,2,3,4
 expID         = 2;     % Experiment ID, could be 1,2,3,4,5
 plotFlag      = true;  % Flag to plot results
 
@@ -91,7 +92,8 @@ exhv_azimtuh_long = repmat(exhv_azimuth,size(nSamplesList));
 exhv_elevation_long = repmat(exhv_elevation,size(nSamplesList));
 exhv_gain_long = repmat(exhv_gain,size(nSamplesList));
 
-selPolicyList = {'DIRECT-minVar','random','UM','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+% selPolicyList = {'DIRECT-minVar','random','UM','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+selPolicyList = {'PI'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
 for polIdx = 1:length(selPolicyList)
 
     selPolicy = selPolicyList{polIdx};
@@ -114,10 +116,6 @@ for polIdx = 1:length(selPolicyList)
             azim_sample_random = samples(2,:);
             elev_sample1 = elev_sample_random(1:minSamples);  % Store the sampled elevation angles
             azim_sample1 = azim_sample_random(1:minSamples);  % Store the sampled azimuth angles
-        elseif strcmp(selPolicy,'EI')
-            % To-do
-        elseif strcmp(selPolicy,'PI')
-            % To-do
         elseif strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
             % Initialize DIRECT
             selPoss = CBG_DIRECT([0 90],[0 180],minSamples);
@@ -177,21 +175,32 @@ for polIdx = 1:length(selPolicyList)
 % 
 %                 ax = subplot(1,4,1); cla reset; hold on;
                 ax = figure;  hold on;
-                brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
+%                 brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
+%                 colormap(flipud(gray(15)))
+%                 colormap(flipud(jet(15)))
+                colormap(jet(15))
+                colorbar('eastoutside');
+                colorbar('hide')
                 imagesc(X0(1,:),Y0(:,1),Z0); axis xy; axis tight; % Generate Exhaustive image
                 p1 = plot(elev_sample1,azim_sample1,'o','color','b','MarkerSize',5,'MarkerFaceColor','b');  % Plot trials so far
-                p2 = plot(exhv_elevation,exhv_azimuth,'sg','MarkerSize',7.5,'MarkerFaceColor','g');  % Plot trials so far
-                p3 = plot(pred_elevation,pred_azimuth,'sy','MarkerSize',7.5,'MarkerFaceColor','y');  % Plot trials so far
-                mystr = strcat('#',num2str(nSamples),{' '},'Real+sampling');
-    %             legend([p1 p2 p3],{'Trials','Optimum','Selected'})
+                p2 = plot(exhv_elevation,exhv_azimuth,'sr','MarkerSize',7.5,'MarkerFaceColor','r','MarkerEdgeColor','k');  % Plot trials so far
+                p3 = plot(pred_elevation,pred_azimuth,'sg','MarkerSize',7.5,'MarkerFaceColor','g','MarkerEdgeColor','k');  % Plot trials so far
+                mystr = strcat('trial',{' '},num2str(nSamples));
                 title(mystr);
                 if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
-                    scatter(selPoss(1,1,:),selPoss(1,2,:),15,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k');
+                    p4 = scatter(selPoss(1,1,:),selPoss(1,2,:),15,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k');
                     for t = 1:size(selPoss,3)
-                    hm = plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=0.4;
-                    hm = plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=0.4;
+                    hm = plot([selPoss(2,1,t) selPoss(2,1,t)],[selPoss(3,1,t) selPoss(3,2,t)],'lineWidth',0.5,'color','k','lineStyle','-');  hm.Color(4)=0.7;
+                    hm = plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',0.5,'color','k','lineStyle','-');  hm.Color(4)=0.7;
                     end
+                    legend([p1 p2 p3 p4],{'Trials','Optimum','Selected','Candidates'},'Location','NorthWest')
+                else
+                    legend([p1 p2 p3],{'Trials','Optimum','Selected'},'Location','NorthWest')
                 end
+                yticks([0 30 60 90 120 150 180]);
+                xticks([0 15 30 45 60 75 90]);
+                pos = get(gcf, 'Position');
+                set(gcf,'position',[pos(1),pos(2),323,244]);
                 hold off
 
 %                 ax = subplot(1,4,2); cla reset;
@@ -205,11 +214,17 @@ for polIdx = 1:length(selPolicyList)
 
 %                 ax = subplot(1,4,3); cla reset;
                 ax = figure; hold on; 
-                brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
+%                 brewermap('*Spectral');  colormap(ax,'brewermap');  colorbar('eastoutside');
+                colormap(jet(15))
+                colorbar('eastoutside');
+                colorbar('hide')
                 contourf(X0,Y0,Zvar);
                 mystr = strcat('#',num2str(nSamples),{' '},'kriging variance');
                 title(mystr);
-                
+                yticks([0 30 60 90 120 150 180]);
+                xticks([0 15 30 45 60 75 90]);
+                pos = get(gcf, 'Position');
+                set(gcf,'position',[pos(1),pos(2),323,244]);
                 p1 = plot(elev_sample1,azim_sample1,'o','color','g','MarkerSize',5,'MarkerFaceColor','g');  % Plot trials so far
                 if strcmp(selPolicy,'DIRECT-rand') || strcmp(selPolicy,'DIRECT-minVar')
                     scatter(selPoss(1,1,:),selPoss(1,2,:),15,'Marker','+','MarkerFaceColor','k','MarkerEdgeColor','k');
@@ -218,6 +233,7 @@ for polIdx = 1:length(selPolicyList)
                     hm = plot([selPoss(2,1,t) selPoss(2,2,t)],[selPoss(3,1,t) selPoss(3,1,t)],'lineWidth',0.3,'color','k','lineStyle','-');  hm.Color(4)=1;
                     end
                 end
+                hold off
 
 %                 ax = subplot(1,4,4); cla reset;
                 ax = figure; 
@@ -243,7 +259,27 @@ for polIdx = 1:length(selPolicyList)
             elseif strcmp(selPolicy,'EI')
                 % To-do
             elseif strcmp(selPolicy,'PI')
-                % To-do
+                % First, select sample with lowest variance
+                [~,trialsSort] = sort(Zhat(:),'descend') ;
+                selTrials = trialsSort(1:new_additions).';
+                for selTrial = selTrials
+                    % Something here
+                    [idx_exhv_maxGain_X,idx_exhv_maxGain_Y] = ind2sub(size(Zhat),selTrial);
+                    sel_elevation = X0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+                    sel_azimuth = Y0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
+                    % Select actual azimuth and elevation to evaluate with kriging
+                    elev_sample1 = [elev_sample1 sel_elevation];  %#ok<AGROW>
+                    azim_sample1 = [azim_sample1 sel_azimuth];  %#ok<AGROW>
+                end
+                % Store results - variance
+                avVar_random1(count,iterAverage) = mean(abs(Zvar(:)));
+                maxVar_random1(count,iterAverage) = max(abs(Zvar(:)));
+                minVar_random1(count,iterAverage) = min(abs(Zvar(:)));
+                % Store results - predictions
+                ml_random_pred_azim(count,iterAverage) = pred_azimuth;
+                ml_random_pred_elev(count,iterAverage) = pred_elevation;
+                ml_random_pred_gain1(count,iterAverage) = pred_gain;
+                ml_random_real_gain1(count,iterAverage) = pred_gain_real;
             elseif strcmp(selPolicy,'UM')
                 % First, select sample with lowest variance
                 [~,trialsSort] = sort(Zvar(:),'descend') ;
@@ -363,7 +399,7 @@ for polIdx = 1:length(selPolicyList)
     end
 end
 
-figIdx = 3;
+figIdx = 50;
 %% AVERAGE VARIANCE
 % figure(figIdx); figIdx = figIdx + 1; hold on;
 % plot(nSamplesList,avVar_random,'lineWidth',2);

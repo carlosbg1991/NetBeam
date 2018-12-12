@@ -5,6 +5,7 @@ addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'
 %% PARAMETERS
 antIDList  = (1:3);     % Antenna ID, could be 1,2,3,4
 expIDList  = (1:3);     % Experiment ID, could be 1,2,3,4,5
+colOrder = colorOrder;
 
 %% PARSE Data if not done before
 if ~exist('outdoor','var') || ~exist('indoor','var')
@@ -19,6 +20,8 @@ idx = 1;
 hp = [];
 for expID = expIDList
     for antID = antIDList
+        % get color ID
+        colId = mod(((expID-1)*length(antIDList)) + antID,length(colOrder)) + 1;
         % Channel gain (exhaustive)
         Z = indoor.gainTot(:,:,antID,expID);
         % calculate the sample variogram
@@ -28,8 +31,8 @@ for expID = expIDList
         v = variogram([a b],c,'maxdist',150,'plotit',false);
         [~,~,~,vstruct] = variogramfit(v.distance,v.val,[],[],[],'model','gaussian','plotit',false);
         figure(1);  hold on
-        p = plot(vstruct.h,vstruct.gammahat,'color','k','lineWidth',2);
-        hp1 = plot(v.distance,v.val,'.','lineStyle','none','lineWidth',2,'MarkerSize',15);
+        p = plot(vstruct.h,vstruct.gammahat,'color',colOrder(colId,:),'lineWidth',2);
+        hp1 = plot(v.distance,v.val,'.','lineStyle','none','lineWidth',2,'MarkerSize',15,'color',colOrder(colId,:));
         hp = [hp hp1];
         myString(idx) = strcat('Exp. #',num2str(expID),{' '},'Antenna #',num2str(antID));
         idx = idx + 1;
