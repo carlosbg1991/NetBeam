@@ -141,7 +141,7 @@ for i = 1:maxIter
             % Store channel estimation
             chTot(:,i) = chEst;
             chEst_old = chEst;
-            rxPow(i) = pow2db((payload_rx'*payload_rx)/length(payload_rx)) + 30;
+            rxPow(i) = pow2db((payload_rx'*payload_rx)/length(payload_rx)) + 30;  %#ok
             rxPow_old = rxPow(i);
             
             % Print out the estimation
@@ -168,15 +168,15 @@ for i = 1:maxIter
         else
             % Store estimation in global variable
             chTot(:,i) = chEst_old;
-            rxPow(i) = rxPow_old;
-            appliedElev(i) = elev_old;  % It was applied but did not receive anything
-            appliedAzym(i) = azym_old;  % It was applied but did not receive anything
+            rxPow(i) = rxPow_old;  %#ok
+            appliedElev(i) = elev_old;  %#ok
+            appliedAzym(i) = azym_old;  %#ok
         end
     else
         chTot(:,i) = chEst_old;
-        rxPow(i) = rxPow_old;
-        appliedElev(i) = elev_old;  % It was applied but did not receive anything
-        appliedAzym(i) = azym_old;  % It was applied but did not receive anything
+        rxPow(i) = rxPow_old;  %#ok
+        appliedElev(i) = elev_old;  %#ok
+        appliedAzym(i) = azym_old;  %#ok
     end
     
     if visualize
@@ -192,6 +192,12 @@ for i = 1:maxIter
 end
 
 lastIter = i;
+
+% Store results in mat file (all workspace)
 save('sim_BER-exp2ant.mat');
 
+% Release receiver System Object
 release(receiver);
+
+% Plot the results
+if visualize;   BER_receiverPlot;   end

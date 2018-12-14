@@ -12,7 +12,7 @@ newAddPoss    = 4;     % New possible possitions for DIRECT
 nIter         = 1;    % Iterations to run Random over
 antID         = 2;     % Antenna ID, could be 1,2,3,4
 expID         = 2;     % Experiment ID, could be 1,2,3,4,5
-plotFlag      = true;  % Flag to plot results
+plotFlag      = false;  % Flag to plot results
 
 %% PARSE Data if not done before
 if ~exist('outdoor','var') || ~exist('indoor','var')
@@ -92,8 +92,8 @@ exhv_azimtuh_long = repmat(exhv_azimuth,size(nSamplesList));
 exhv_elevation_long = repmat(exhv_elevation,size(nSamplesList));
 exhv_gain_long = repmat(exhv_gain,size(nSamplesList));
 
-% selPolicyList = {'DIRECT-minVar','random','UM','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
-selPolicyList = {'PI'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+selPolicyList = {'DIRECT-minVar','random','UM','DIRECT-rand'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
+% selPolicyList = {'DIRECT-minVar'}; % Chose between 'random', 'EI', 'PI', 'UM', 'DIRECT-rand', 'DIRECT-minVar'
 for polIdx = 1:length(selPolicyList)
 
     selPolicy = selPolicyList{polIdx};

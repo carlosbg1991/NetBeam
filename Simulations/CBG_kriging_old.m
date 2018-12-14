@@ -1,4 +1,4 @@
-function [opt_krig,opt_exhv,Zhat,Zvar] = CBG_kriging(Z,elevList,azimList,n_samples,plotFlag)
+function [opt_krig,opt_exhv,Zhat,Zvar] = CBG_kriging_old(Z,elevList,azimList,n_samples,plotFlag)
 
 nTxAntennas = size(Z,3);
 [X,Y] = meshgrid(elevList,azimList);
