@@ -21,7 +21,7 @@ function [zi,s2zi] = kriging(vstruct,x,y,z,xi,yi,chunksize)
 %     not be necessary when sample locations are not within the
 %     autocorrelation range but would require something like a k nearest
 %     neighbor search algorithm or something similar. Thus, the algorithms
-%     works best for relatively small numbers of observations (100-500).
+%     works best for relatively small numbers of observations (b100-500).
 %     For larger numbers of observations I recommend the use of GSTAT.
 %
 %     Note that kriging fails if there are two or more observations at one
@@ -164,13 +164,13 @@ end
 % parametrize engine
 nrloops   = ceil(numest/chunksize);
 
-% initialize the waitbar
-h  = waitbar(0,'Kr...kr...kriging');
+% % initialize the waitbar
+% h  = waitbar(0,'Kr...kr...kriging');
 
 % now loop 
 for r = 1:nrloops;
-    % waitbar 
-    waitbar(r / nrloops,h);
+%     % waitbar 
+%     waitbar(r / nrloops,h);
     
     % built chunks
     if r<nrloops
@@ -227,8 +227,8 @@ for r = 1:nrloops;
     
 end
 
-% close waitbar
-close(h)
+% % close waitbar
+% close(h)
 
 % reshape zi
 zi = reshape(zi,sizest);

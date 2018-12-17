@@ -4,14 +4,11 @@ addpath('../../Beamforming/');  % SDP solver in Beamforming repository
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% SIMULATION CONFIGURATION
-antIDList            = (1:1:4);  % Antenna ID, could be 1,2,3,4
-expIDList            = (6:1:14);  % Experiment ID, could be 1,2,3,4,5
-plotFlag             = true;  % Flag to plot results
 N                    = 12;  % Number of transmitter antennas
 M                    = 3;  % Number of receiver antennas
-SNRdemands           = [0.7; 0.6; 0.8];  % Minimum SINR for each user
+SNRdemands           = [0.6; 0.4; 0.7];  % Minimum SINR for each user
 % Configuration for 1ST STAGE: DIRECT-VM 
-offline              = 2;  % Number of offline trials
+% Pre-stored
 % Configuration for 2ND STAGE: Antenna selection
 % Configuration for 3RD STAGE: SDB beamforming
 sigma2               = ones(12,1);  % Noise variance
@@ -35,10 +32,9 @@ end
 elevList    = DATA.elevList;  % Local copy
 azimList    = DATA.azimList;  % Local copy
 
-
-policy_1stList = {'random','DIRECT-rand_2','DIRECT-rand_4','DIRECT-minVar_8','PI_4','PI_2','DIRECT-minVar_4','DIRECT-minVar_2','UM_4','UM_2'};
-legends        = {'Random','DIRECT-rand_2','DIRECT-rand_4','DIRECT_8','PI_4','PI_2','DIRECT-minVar_4','DIRECT-minVar_2','UM_4','UM_2'};
-policy_2ndList = {'optimum','greedy-equtv','random'};
+policy_1stList = {'DIRECT-minVar_4','UM_4','PI_4','DIRECT-minVar_8','DIRECT-rand_4','random'};
+legends        = {'DIRECT-UM','UM','PI','DIRECT','DIRECT-RD','Random'};
+policy_2ndList = {'optimum','greedy','random'};
 
 txPowerTot = [];
 rxSNRsum = [];
@@ -128,39 +124,38 @@ stackData = txPowerTot;
 plotBarStackGroups(stackData, groupLabels,1);
 lg = legend(legends);
 set(lg,'FontSize',8);
-title('analysis on the MAX GAIN achieved','FontSize',12);
-ylabel('Overall transmit power (linear)','FontSize',12);
-grid minor;
+title('INDOORS','FontSize',12);
+ylabel('Overall tx. power (linear)','FontSize',12);
 % Modify colors
 a = findobj(gca,'type','bar');
-a(1).FaceColor = [178 255 102]./255;  %light green
-a(2).FaceColor = [0 153 76]./255;  %dark green
-a(3).FaceColor = [51 153 255]./255;  %light blue
-a(4).FaceColor = [0 0 204]./255;  %dark blue
-a(5).FaceColor = [255 255 102]./255;  %light yellow
-a(6).FaceColor = [153 153 0]./255;  %dark yellow
-a(7).FaceColor = [255 102 102]./255;  %light red
-a(8).FaceColor = [255 0 0]./255;  %red
-a(9).FaceColor = [153 0 0]./255;  %dark red
-a(10).FaceColor = [0 0 0]./255;  %black
+a(6).FaceColor = [0 104 255]./255;
+a(1).FaceColor = [76 76 76]./255;
+a(2).FaceColor = [127 127 127]./255;
+a(3).FaceColor = [178 178 178]./255;
+a(4).FaceColor = [204 204 204]./255;
+a(5).FaceColor = [229 229 229]./255;
+xlim([0.5 3.5]);
+pos = get(gcf, 'Position');
+set(gcf,'position',[pos(1),pos(2),677,235]);
+grid minor;
 
 groupLabels = policy_2ndList;
 stackData = rxSNRsum;
 plotBarStackGroups(stackData, groupLabels,2);
 lg = legend(legends);
 set(lg,'FontSize',8);
-title('analysis on the MAX GAIN achieved','FontSize',12);
-ylabel('Overall SNR lost','FontSize',12);
+title('INDOORS','FontSize',12);
+ylabel('Overall SNR lost (linear)','FontSize',12);
 grid minor;
 % Modify colors
 a = findobj(gca,'type','bar');
-a(1).FaceColor = [178 255 102]./255;  %light green
-a(2).FaceColor = [0 153 76]./255;  %dark green
-a(3).FaceColor = [51 153 255]./255;  %light blue
-a(4).FaceColor = [0 0 204]./255;  %dark blue
-a(5).FaceColor = [255 255 102]./255;  %light yellow
-a(6).FaceColor = [153 153 0]./255;  %dark yellow
-a(7).FaceColor = [255 102 102]./255;  %light red
-a(8).FaceColor = [255 0 0]./255;  %red
-a(9).FaceColor = [153 0 0]./255;  %dark red
-a(10).FaceColor = [0 0 0]./255;  %black
+a(6).FaceColor = [0 104 255]./255;
+a(1).FaceColor = [76 76 76]./255;
+a(2).FaceColor = [127 127 127]./255;
+a(3).FaceColor = [178 178 178]./255;
+a(4).FaceColor = [204 204 204]./255;
+a(5).FaceColor = [229 229 229]./255;
+xlim([0.5 3.5]);
+pos = get(gcf, 'Position');
+set(gcf,'position',[pos(1),pos(2),677,235]);
+grid minor;

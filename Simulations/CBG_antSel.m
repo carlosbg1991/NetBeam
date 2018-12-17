@@ -90,7 +90,15 @@ elseif strcmp(policy,'random')   % Random policy selection
         totPoss(idxShuffle) = [];
     end
 elseif strcmp(policy,'greedy')
-    %To-Do
+    totPoss = 1:1:N;  % List of Tx to be assigned to Rx
+    while(~isempty(totPoss))
+        for rxID = priority
+            [~,greedyIdx] = sort(chMaxGain(rxID,totPoss),'descend');
+            mySelect = greedyIdx(1:ceil(N/M));
+            finalAssign{rxID} = [finalAssign{rxID} totPoss(mySelect)];
+            totPoss(mySelect) = [];
+        end
+    end
 elseif strcmp(policy,'greedy-equtv')
     totPoss = 1:1:N;  % List of Tx to be assigned to Rx
     while(~isempty(totPoss))

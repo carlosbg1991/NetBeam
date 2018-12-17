@@ -1,22 +1,23 @@
 %% Configure workspace
 clc; clear all; clear classes; close all;  %#ok
 addpath('../../Beamforming/');  % SDP solver in Beamforming repository
+addpath('kriging/');  % SDP solver in Beamforming repository
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% SIMULATION CONFIGURATION
-antIDList            = (1:1:4);  % Antenna ID, could be 1,2,3,4
-expIDList            = (6:1:14);  % Experiment ID, could be 1,2,3,4,5
+antIDList            = (1:4);  % Antenna ID, could be 1,2,3,4
+expIDList            = (6:10);  % Experiment ID, could be 1,2,3,4,5
 plotFlag             = false;  % Flag to plot results
 N                    = 12;  % Number of transmitter antennas
 M                    = 3;  % Number of receiver antennas
 SNRdemands           = [0.7; 0.6; 0.8];  % Minimum SINR for each user
 % Configuration for 1ST STAGE: DIRECT-VM 
-config.n_samples     = 16;   % Maximum trials
-config.new_additions = 1;   % New trials per iteration
+config.n_samples     = 8;   % Maximum trials
+config.new_additions = 2;   % New trials per iteration
 config.newAddPoss    = 4;   % New possible possitions for DIRECT
-config.nIter         = 1;  % Iterations to run Random over
+config.nIter         = 10;  % Iterations to run Random over
 % Configure comms environment
-environment          = 'outdoor';  % 'indoor', 'outdoor'
+environment          = 'indoor';  % 'indoor', 'outdoor'
 
 %% PARSE Data if not done before
 if ~exist('RESULTS','var')
@@ -34,14 +35,18 @@ end
 elevList    = DATA.elevList;  % Local copy
 azimList    = DATA.azimList;  % Local copy
 
-
 policy_1stList = {'random','DIRECT-rand','DIRECT-minVar','PI','UM'};
+% policy_1stList = {'DIRECT-minVar'};
 
 offlineList = [2 4 6 8];
-count = 1;
+gap2OptAv = zeros(length(offlineList),length(policy_1stList));
+gap2OptMax = zeros(length(offlineList),length(policy_1stList));
+gap2OptSum = zeros(length(offlineList),length(policy_1stList));
 for idxPolicy1 = 1:length(policy_1stList)
     policy_1st = policy_1stList{idxPolicy1};
-    for offline = offlineList
+    fprintf('Policy: %s\n',policy_1st);
+    for idxOffline = 1:length(offlineList)
+        offline = offlineList(idxOffline);
         % Configure offline trials
         config.minSamples = offline;
         %% 1 stage: Antenna orientation
@@ -79,7 +84,47 @@ for idxPolicy1 = 1:length(policy_1stList)
         end
 
         % Determine gap to optimum
-        gap2Opt(count) = abs(H_exh) - abs(H);
-        count = count + 1;  % counter for indexing results
+        gap2OptAv(idxOffline,idxPolicy1) = mean(abs(H_exh) - abs(H),'all');
+        gap2OptMax(idxOffline,idxPolicy1) = max(abs(H_exh) - abs(H),[],'all');
+        gap2OptSum(idxOffline,idxPolicy1) = sum(abs(H_exh) - abs(H),'all');
     end
 end
+%% AVERAGE
+groupLabels = {'Random', 'DIRECT-RD', 'DIRECT-UM', 'PI', 'UM'};
+stackData = gap2OptAv.';
+plotBarStackGroups(stackData, groupLabels,1);
+lg = legend('Off-line: 2 trials / On-line: 8 trials',...
+            'Off-line: 4 trials / On-line: 8 trials',...
+            'Off-line: 6 trials / On-line: 8 trials',...
+            'Off-line: 8 trials');
+set(lg,'FontSize',8);
+ylabel('(Mean) Gap to optimality (linear gain)','FontSize',12);
+grid minor;
+% Modify colors
+a = findobj(gca,'type','bar');
+a(4).FaceColor = [0 191 255]./255;  %light green
+a(3).FaceColor = [70 130 180]./255;  %dark green
+a(2).FaceColor = [106 90 205]./255;  %light blue
+a(1).FaceColor = [0 0 128]./255;  %dark blue
+%% MAX
+groupLabels = {'Random', 'DIRECT-RD', 'DIRECT-UM', 'PI', 'UM'};
+stackData = gap2OptMax.';
+plotBarStackGroups(stackData, groupLabels,2);
+lg = legend('Off-line: 2 trials / On-line: 8 trials',...
+            'Off-line: 4 trials / On-line: 8 trials',...
+            'Off-line: 6 trials / On-line: 8 trials',...
+            'Off-line: 8 trials');
+set(lg,'FontSize',8);
+ylabel('(Max) Gap to optimality (linear gain)','FontSize',12);
+grid minor;
+%% SUM
+groupLabels = {'Random', 'DIRECT-RD', 'DIRECT-UM', 'PI', 'UM'};
+stackData = gap2OptSum.';
+plotBarStackGroups(stackData, groupLabels,3);
+lg = legend('Off-line: 2 trials / On-line: 8 trials',...
+            'Off-line: 4 trials / On-line: 8 trials',...
+            'Off-line: 6 trials / On-line: 8 trials',...
+            'Off-line: 8 trials');
+set(lg,'FontSize',8);
+ylabel('(Sum) Gap to optimality (linear gain)','FontSize',12);
+grid minor;
