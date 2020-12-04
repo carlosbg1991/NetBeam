@@ -5,7 +5,7 @@ addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% PARAMETERS
-minSamples    = 4;     % Minimum Kriging initialization space
+minSamples    = 2;     % Minimum Kriging initialization space
 n_samples     = 8;    % Maximum number of samples to run Kriging with
 new_additions = 1;     % New trials per iteration
 newAddPoss    = 4;     % New possible possitions for DIRECT

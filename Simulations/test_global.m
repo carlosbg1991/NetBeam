@@ -1,18 +1,48 @@
+% TEST_GLOBAL - This script loads the channel measured in the experiments
+% in a set of 12 antenna transmitters and 3 different receivers. Then, it
+% executes the overall NetBeam framework, consisting of antenna
+% orientation, antenna selection and SDP-based beamforming. The results
+% show the overall transmit power required by different policies as well as
+% the resulting gap between the offered and requested SNR.
+%
+% This script generates Fig. 12 of the publication :
+% [1] C. Bocanegra, K. Alemdar, S. Garcia, C. Singhal and K. R. Chowdhury,
+%     “NetBeam: Network of Distributed Full-dimension
+%     Beamforming SDRs for Multi-user Heterogeneous Traffic,” IEEE Dynamic
+%     Spectrum (DySpan), Newark, NJ, 2019
+%
+% Syntax:  test_global([])
+%
+% Inputs: []
+%
+% Outputs: []
+%
+%
+%------------- BEGIN CODE --------------
+
+
 %% Configure workspace
 clc; clear all; clear classes; close all;  %#ok
 addpath('../../Beamforming/');  % SDP solver in Beamforming repository
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% SIMULATION CONFIGURATION
-N                    = 12;  % Number of transmitter antennas
-M                    = 3;  % Number of receiver antennas
-SNRdemands           = [0.6; 0.4; 0.7];  % Minimum SINR for each user
+N                    = 12;  % Number of transmitter antennas (Fixed, this 
+                            % is the antenna set used throughout
+                            % experiments with real radios - SDRs, do not 
+                            % modify)
+M                    = 3;   % Number of receiver antennas (SDP is configured
+                            % for 3 users. For a different number, please
+                            % modify CBG_sdp_solver)
+SNRdemands           = [0.7; 0.4; 0.5];  % Minimum SINR for each user, feel
+                                         % free to distribute SNR across
+                                         % the 3 (M) users, between 0 and 1
 % Configuration for 1ST STAGE: DIRECT-VM 
-% Pre-stored
 % Configuration for 2ND STAGE: Antenna selection
 % Configuration for 3RD STAGE: SDB beamforming
 sigma2               = ones(12,1);  % Noise variance
-Pt_max               = 1;  % Maximum transmitted power per each radius
+Pt_max               = 1;  % Maximum normalized transmitted power per each 
+                           % radio 
 % Configure comms environment
 environment          = 'outdoor';  % 'indoor', 'outdoor'
 
@@ -92,11 +122,13 @@ for idxPolicy2 = 1:length(policy_2ndList)
         SNRdemands1 = SNRdemands;
         while repeat
             [w, SNR, repeat] = CBG_sdp_solver(H, N, M, Pt_max, SNRdemands1, sigma2, assignation);
-            % Adjust demanded SNR and try it again
-            [maxSNR,i] = max(SNRdemands1);
-            minSNR = min(SNRdemands1);
-            delta = 0.05;
-            SNRdemands1(i) = SNRdemands1(i) - delta;
+            if repeat
+                % Adjust demanded SNR and try it again
+                [maxSNR,i] = max(SNRdemands1);
+                minSNR = min(SNRdemands1);
+                delta = 0.05;
+                SNRdemands1(i) = SNRdemands1(i) - delta;
+            end
         end
         
         %% Final: show results

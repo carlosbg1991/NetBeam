@@ -1,7 +1,7 @@
 clear all; clear classes; close all; clc;
 
-N = 20;
-MList = (1:1:10);
+N = 5;
+MList = (1:1:20);
 Niter = 10;
 % myAlphas = [0.1 0.3 0.5 0.9 1].';
 myAlphas = 1;

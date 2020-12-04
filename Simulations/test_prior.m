@@ -1,15 +1,19 @@
 % clear all; clear classes;  %#ok
 close all; clc;
-addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
+addpath('../BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
+addpath('kriging/');  % Include variogram and variogramfit
+addpath('data/');  % where results from experiments using real radios are
 
 %% PARAMETERS
 antIDList  = (1:3);     % Antenna ID, could be 1,2,3,4
 expIDList  = (1:3);     % Experiment ID, could be 1,2,3,4,5
-colOrder = colorOrder;
+colOrder = colororder;
 
 %% PARSE Data if not done before
-if ~exist('outdoor','var') || ~exist('indoor','var')
-    CBG_parse_experiments;  % Parse data into structs 'indoor', 'outdoor'
+if ~exist('RESULTS','var')
+    load('RESULTS','indoor','outdoor','paramList');
+elseif ~exist('outdoor','var') || ~exist('indoor','var')
+    CBG_parse_experiments;  % parse experimental DATA
 end
 % indoor = 1;
 elevList = indoor.elevList;

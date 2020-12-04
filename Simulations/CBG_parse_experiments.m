@@ -3,6 +3,8 @@ if length(dbstack) == 1
     clear all; clear classes; close all; clc;  %#ok
 end
 
+addpath('data/');
+
 %% Total param names
 paramList = {'azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym'};
 
@@ -115,7 +117,7 @@ indoor = parseData(indoor,paramList,37,19,4);  % INDOORS
 outdoor = parseData(outdoor,paramList,19,10,4);  % OUTDOORS
 
 %% SAVER
-save('RESULTS','indoor','outdoor','paramList');
+save('data/RESULTS','indoor','outdoor','paramList');
 
 
 

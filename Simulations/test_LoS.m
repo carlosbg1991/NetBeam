@@ -1,24 +1,76 @@
-% clear all; clear classes;  %#ok
-close all; clc;
+function test_LoS(varargin)
+% TEST_LoS - The script loads the channels from the experiments usin real
+% radios and plots the gains in the angular map (azimuth and elevation). 
+%
+% This script generates Fig. 5 of the publication :
+% [1] C. Bocanegra, K. Alemdar, S. Garcia, C. Singhal and K. R. Chowdhury,
+%     “NetBeam: Network of Distributed Full-dimension
+%     Beamforming SDRs for Multi-user Heterogeneous Traffic,” IEEE Dynamic
+%     Spectrum (DySpan), Newark, NJ, 2019
+%
+% Syntax:  test_LoS(environment)
+%
+% Inputs:
+%    environment [optional] - String that takes the values 'indoor' and
+%    'outdoor'. It selects the environment in which the experiments were
+%    carried out. It defaults to indoor.
+%
+% Outputs: []
+%
+%
+%------------- BEGIN CODE --------------
+
+
+
+if (nargin==1)
+    environment = varargin{1};
+elseif (nargin==0)
+    clear all; clear classes;  %#ok
+    close all; clc;
+    environment = 'indoor';  % take indoor for example
+else
+    error('ERROR: The script only accepts 1 or none inputs\n');
+end
+
+fprintf('Selected environment: %s\n',environment);
+
 addpath('BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
 addpath('export_fig/');  % export figure in eps
+addpath('data/');  % where results are stored (to be loaded)
 
 %% PARAMETERS
 antIDList  = (1:4);     % Antenna ID, could be 1,2,3,4
 expIDList  = (1:5);     % Experiment ID, could be 1,2,3,4,5
 
 %% PARSE Data if not done before
-if ~exist('outdoor','var') || ~exist('indoor','var')
-    CBG_parse_experiments;  % Parse data into structs 'indoor', 'outdoor'
+if ~exist('RESULTS','var')
+    load('RESULTS','indoor','outdoor','paramList');
+elseif ~exist('outdoor','var') || ~exist('indoor','var')
+    CBG_parse_experiments;  % parse experimental DATA
 end
-% indoor = 2;  % useful to change variable name
-elevList = indoor.elevList;
-azimList = indoor.azimList;
+
+if strcmp(environment, 'outdoor')
+    % elevList = indoor.elevList;
+    % azimList = indoor.azimList;
+    elevList = outdoor.elevList;
+    azimList = outdoor.azimList;
+    gainTot = outdoor.gainTot;
+    elevLoS = outdoor.elevLoS;
+    azimLoS = outdoor.azimLoS;
+elseif strcmp(environment, 'indoor')
+    elevList = indoor.elevList;
+    azimList = indoor.azimList;
+    gainTot = indoor.gainTot;
+    elevLoS = indoor.elevLoS;
+    azimLoS = indoor.azimLoS;
+else
+    error('ERROR: Wrong environment. use outdoor or indoor')
+end
 
 for expID = expIDList
     for antID = antIDList
         [X,Y] = meshgrid(elevList,azimList);  % Orientation space (exhaustive)
-        Z = indoor.gainTot(:,:,antID,expID);  % Channel gain (exhaustive)
+        Z = gainTot(:,:,antID,expID);  % Channel gain (exhaustive)
 
         % new interpolated input (assume this is the real exhaustive)
         elevList_int = (max(elevList):-1:min(elevList));
@@ -33,8 +85,8 @@ for expID = expIDList
         exhv_azimuth = Y0(idx_exhv_maxGain_X,idx_exhv_maxGain_Y);
         
         % find forecasted angles
-        los_elevation = indoor.elevLoS(expID,antID);
-        los_azimuth = indoor.azimLoS(expID,antID);
+        los_elevation = elevLoS(expID,antID);
+        los_azimuth = azimLoS(expID,antID);
         
         ax = figure;  hold on;
         
@@ -44,13 +96,16 @@ for expID = expIDList
         p2 = plot(exhv_elevation,exhv_azimuth,'sk','MarkerSize',10,'MarkerFaceColor','k','MarkerEdgeColor','k');  % Plot trials so far
         p3 = plot(los_elevation,los_azimuth,'sg','MarkerSize',10,'MarkerFaceColor','g','MarkerEdgeColor','k');  % Plot trials so far
         lg = legend([p2 p3],'Max. gain','LoS');
+        xlabel('Elevation');
+        ylabel('Azimuth');
+        title(sprintf('TX %d - RX %d',expID,antID));
         h = get(gca,'Children');
         set(gca,'Children',[h(1) h(2) h(3)]);
         colormap(jet(15))
         colorbar('eastoutside');
-        colorbar('hide')
+        colorbar('hide');
         hold off
-        axis tight; 
+        axis tight;
         
 %         h = get(gca,'Children');
 %         set(gca,'Children',[h(3) h(2) h(1)])

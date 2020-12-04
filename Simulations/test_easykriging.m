@@ -1,7 +1,45 @@
+function test_easykriging(varargin)
+% TEST_EASYKRIGING - The script loads results containing the channel
+% measurements for the all the combinations of azimuth and elevation
+% angles. Then, it showcases the benefits of krigging where a number of
+% samples are taken as knowns and the model predicts the channel for
+% unvisited angles, as well as the uncertainty associated to such
+% prediction.
+%
+% This script generates Fig. 6 of the publication (make sure to call this
+% function with knownRatio=7):
+% [1] C. Bocanegra, K. Alemdar, S. Garcia, C. Singhal and K. R. Chowdhury,
+%     “NetBeam: Network of Distributed Full-dimension
+%     Beamforming SDRs for Multi-user Heterogeneous Traffic,” IEEE Dynamic
+%     Spectrum (DySpan), Newark, NJ, 2019
+%
+% Syntax:  test_easykriging(knownRatio)
+%
+% Inputs:
+%    knownRatio [optional] - Possitive integer that captures the ratio of
+%    known angles over the unknowns. This should be positive and greater
+%    than 1, i.e., 2 or greater. The lower knownRatio is, the lower the
+%    uncertainty in the system is and the more accurate the predictions
+%    are.
+%
+% Outputs: []
+%
+%
+%------------- BEGIN CODE --------------
+
+if (nargin==1)
+    K = varargin{1};
+elseif (nargin==0)
+    clear all; clear classes; close all; clc;  %#ok
+    K = 7;
+else
+    error('ERROR: The script only accepts 1 or none inputs\n');
+end
+
 %% Configure workspace
-clear all; clear classes; close all; clc;  %#ok
 addpath('kriging/');  % Include Kriging folder (variogram and kriging)
 addpath('easyKriging/');  % Include Easy Kriging folder (simplified 1-dim)
+addpath('data/');  % Include Easy Kriging folder (simplified 1-dim)
 
 %% Load experimental data
 load('results-27-Nov-2018_01:32:43.mat','azimList','elevList','chTot','nTxAntennas','appliedElev','appliedAzym');
@@ -26,7 +64,6 @@ for id = 1:nTxAntennas
     Z(:,:,id) = reshape(Z_prel(id,:),[size(X,1),size(X,2)]);
 end
 
-K = 7;
 condPoints = Y(1:K:end,8);  % Sample Points
 condVals = Z(1:K:end,8);  % Sample values
 

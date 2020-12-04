@@ -1,7 +1,32 @@
+% TEST_ORIENTATION - The script loads results from a wide variety of
+% experiments (indoors and outdoors) containing the channel measurements
+% for the all the combinations of azimuth and elevation angles. Then, it
+% enforces baseline antenna orientation policies (RANDOM, PI, UM) and
+% compares them to the proposed antenna orientation policy in NetBeam
+% (DIRECT-UM or DIRECT-minVar). The results show the gap to optimality in
+% terms of channel gain.
+%
+% This script generates Fig. 11 of the publication :
+% [1] C. Bocanegra, K. Alemdar, S. Garcia, C. Singhal and K. R. Chowdhury,
+%     “NetBeam: Network of Distributed Full-dimension
+%     Beamforming SDRs for Multi-user Heterogeneous Traffic,” IEEE Dynamic
+%     Spectrum (DySpan), Newark, NJ, 2019
+%
+% Syntax:  test_orientation([])
+%
+% Inputs: []
+%
+% Outputs: []
+%
+%
+%------------- BEGIN CODE --------------
+
+
 %% Configure workspace
 clc; clear all; clear classes; close all;  %#ok
 addpath('../../Beamforming/');  % SDP solver in Beamforming repository
 addpath('kriging/');  % SDP solver in Beamforming repository
+addpath('data/');  % where results are stored (to be loaded) 
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
 
 %% SIMULATION CONFIGURATION
@@ -16,8 +41,16 @@ config.n_samples     = 8;   % Maximum trials
 config.new_additions = 2;   % New trials per iteration
 config.newAddPoss    = 4;   % New possible possitions for DIRECT
 config.nIter         = 10;  % Iterations to run Random over
+offlineList          = [2 4 6 8];  % Define the number of samples offline. 
+                                   % Recall that DIRECT-UM consist of an
+                                   % initial offline stage and then an 
+                                   % advanced online stage. The more online                                   
+                                   % samples, the more effective the 
+                                   % algorithm is.
 % Configure comms environment
 environment          = 'indoor';  % 'indoor', 'outdoor'
+% Define antenna orientation policies
+policy_1stList       = {'random','DIRECT-rand','DIRECT-minVar','PI','UM'};
 
 %% PARSE Data if not done before
 if ~exist('RESULTS','var')
@@ -35,10 +68,6 @@ end
 elevList    = DATA.elevList;  % Local copy
 azimList    = DATA.azimList;  % Local copy
 
-policy_1stList = {'random','DIRECT-rand','DIRECT-minVar','PI','UM'};
-% policy_1stList = {'DIRECT-minVar'};
-
-offlineList = [2 4 6 8];
 gap2OptAv = zeros(length(offlineList),length(policy_1stList));
 gap2OptMax = zeros(length(offlineList),length(policy_1stList));
 gap2OptSum = zeros(length(offlineList),length(policy_1stList));

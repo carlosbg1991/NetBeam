@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [ -d "cvx" ] 
+then
+    echo "CVX already installed" 
+else
+    echo "[INFO] Downloading Matlab CVX"
+    wget http://web.cvxr.com/cvx/cvx-a64.tar.gz
+	tar -zxvf cvx-a64.tar.gz
+	rm cvx-a64.tar.gz
+	echo "[INFO] Installing Matlab CVX"
+	matlab -r "cd cvx; try, run ('cvx_setup'); end; quit"
+	echo "[INFO] Matlab CVX is installed correctly"
+fi

@@ -1,0 +1,3 @@
+[submodule "BrewerMap"]
+	path = BrewerMap
+	url = https://github.com/DrosteEffect/BrewerMap.git
