@@ -1,3 +1,4 @@
+function test_orientation(varargin)
 % TEST_ORIENTATION - The script loads results from a wide variety of
 % experiments (indoors and outdoors) containing the channel measurements
 % for the all the combinations of azimuth and elevation angles. Then, it
@@ -12,9 +13,12 @@
 %     Beamforming SDRs for Multi-user Heterogeneous Traffic,” IEEE Dynamic
 %     Spectrum (DySpan), Newark, NJ, 2019
 %
-% Syntax:  test_orientation([])
+% Syntax:  test_orientation(environment)
 %
-% Inputs: []
+% Inputs:
+%    environment [optional] - String that takes the values 'indoor' and
+%    'outdoor'. It selects the environment in which the experiments were
+%    carried out. It defaults to indoor.
 %
 % Outputs: []
 %
@@ -22,9 +26,20 @@
 %------------- BEGIN CODE --------------
 
 
+
+if (nargin==1)
+    environment = varargin{1};
+elseif (nargin==0)
+    clear all; clear classes;  %#ok
+    close all; clc;
+    environment = 'outdoor';  % take indoor for example
+else
+    error('ERROR: The script only accepts 1 or none inputs\n');
+end
+
+fprintf('Selected environment: %s\n',environment);
+
 %% Configure workspace
-clc; clear all; clear classes; close all;  %#ok
-addpath('../../Beamforming/');  % SDP solver in Beamforming repository
 addpath('kriging/');  % SDP solver in Beamforming repository
 addpath('data/');  % where results are stored (to be loaded) 
 set(0,'DefaultFigureColor','remove');  % No gray background in figures
@@ -33,9 +48,8 @@ set(0,'DefaultFigureColor','remove');  % No gray background in figures
 antIDList            = (1:4);  % Antenna ID, could be 1,2,3,4
 expIDList            = (6:10);  % Experiment ID, could be 1,2,3,4,5
 plotFlag             = false;  % Flag to plot results
-N                    = 12;  % Number of transmitter antennas
-M                    = 3;  % Number of receiver antennas
-SNRdemands           = [0.7; 0.6; 0.8];  % Minimum SINR for each user
+N                    = 12;  % Number of transmitter antennas (do not modify)
+M                    = 3;  % Number of receiver antennas (do not modify)
 % Configuration for 1ST STAGE: DIRECT-VM 
 config.n_samples     = 8;   % Maximum trials
 config.new_additions = 2;   % New trials per iteration
@@ -47,8 +61,6 @@ offlineList          = [2 4 6 8];  % Define the number of samples offline.
                                    % advanced online stage. The more online                                   
                                    % samples, the more effective the 
                                    % algorithm is.
-% Configure comms environment
-environment          = 'indoor';  % 'indoor', 'outdoor'
 % Define antenna orientation policies
 policy_1stList       = {'random','DIRECT-rand','DIRECT-minVar','PI','UM'};
 
@@ -117,6 +129,7 @@ for idxPolicy1 = 1:length(policy_1stList)
         gap2OptMax(idxOffline,idxPolicy1) = max(abs(H_exh) - abs(H),[],'all');
         gap2OptSum(idxOffline,idxPolicy1) = sum(abs(H_exh) - abs(H),'all');
     end
+    
 end
 %% AVERAGE
 groupLabels = {'Random', 'DIRECT-RD', 'DIRECT-UM', 'PI', 'UM'};

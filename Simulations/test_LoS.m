@@ -50,8 +50,6 @@ elseif ~exist('outdoor','var') || ~exist('indoor','var')
 end
 
 if strcmp(environment, 'outdoor')
-    % elevList = indoor.elevList;
-    % azimList = indoor.azimList;
     elevList = outdoor.elevList;
     azimList = outdoor.azimList;
     gainTot = outdoor.gainTot;
@@ -67,9 +65,10 @@ else
     error('ERROR: Wrong environment. use outdoor or indoor')
 end
 
+[X,Y] = meshgrid(elevList,azimList);  % Orientation space (exhaustive)
+
 for expID = expIDList
     for antID = antIDList
-        [X,Y] = meshgrid(elevList,azimList);  % Orientation space (exhaustive)
         Z = gainTot(:,:,antID,expID);  % Channel gain (exhaustive)
 
         % new interpolated input (assume this is the real exhaustive)

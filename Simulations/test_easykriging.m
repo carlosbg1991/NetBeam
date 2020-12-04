@@ -95,8 +95,8 @@ set(p4,'EdgeColor','none')
 p1 = plot(Y(:,8),Z(:,8),'color',[0 0 1],'LineWidth',2);
 p2 = scatter(condPoints,condVals,'MarkerEdgeColor',[1 0 0],'LineWidth',2,'Marker','o','SizeData',50,'LineWidth',2,'MarkerFaceColor',[1,1,1]);
 p3 = plot(uncondPoints,krige,'color',[1 0 0],'LineWidth',2);
-grid minor
-xlabel('Azimuth antenna steering','FontSize',12);
-ylabel('Empirical channel gain','FontSize',12);
-title('Kriging-based channel gain for FDBF','FontSize',12);
+grid on;
+xlabel('Azimuth antenna steering','FontSize',10);
+ylabel('Empirical channel gain','FontSize',10);
+title(sprintf('Kriging-based channel gain for FDBF, K=%d',K),'FontSize',10);
 lg = legend([p1 p2 p3 p4],'Real measurement','Trials (known)','Prediction (mean)','Uncertainty (variance)');

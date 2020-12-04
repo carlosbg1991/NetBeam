@@ -25,7 +25,6 @@ function test_global(varargin)
 %------------- BEGIN CODE --------------
 
 
-
 %% Configure workspace
 if (nargin==1)
     environment = varargin{1};
@@ -37,12 +36,7 @@ else
     error('ERROR: The script only accepts 1 or none inputs\n');
 end
 
-fprintf(['--------\n'...
-         'IMPORTANT - Make sure you have previously parsed the channels.\n' ...
-         '>> CBG_parse_channels(indoor);\n' ...
-         '>> CBG_parse_channels(outdoor);\n'...
-         '--------\n\n']);
-fprintf('Selected environment: %s\n\n',environment);
+fprintf('Selected environment: %s\n',environment);
 
 addpath('../BrewerMap/');  % Include additional colors: 'BrBG'|'PRGn'|'PiYG'|'PuOr'|'RdBu'|'RdGy'|'RdYlBu'|'RdYlGn'|'Spectral'
 addpath('export_fig/');  % export figure in eps
@@ -57,7 +51,7 @@ N                    = 12;  % Number of transmitter antennas (Fixed, this
 M                    = 3;   % Number of receiver antennas (SDP is configured
                             % for 3 users. For a different number, please
                             % modify CBG_sdp_solver)
-SNRdemands           = [0.7; 0.6; 0.6];  % Minimum SINR for each user, feel
+SNRdemands           = [0.7; 0.4; 0.5];  % Minimum SINR for each user, feel
                                          % free to distribute SNR across
                                          % the 3 (M) users, between 0 and 1
 sigma2               = ones(12,1);  % Noise variance
@@ -71,11 +65,16 @@ elseif ~exist('outdoor','var') || ~exist('indoor','var')
 end
 
 %% Configure data
-policy_1stList = {'DIRECT-minVar_2-8','UM_8-8','PI_8-8','DIRECT-minVar_8-8','DIRECT-rand_8-8','random_8-8'};
+if strcmp(environment,'indoor')
+    %load tight channels here
+elseif strcmp(environment,'outdoor')
+    %load tight channels here
+end
+
+policy_1stList = {'DIRECT-minVar_4','UM_4','PI_4','DIRECT-minVar_8','DIRECT-rand_4','random'};
 legends        = {'DIRECT-UM','UM','PI','DIRECT','DIRECT-RD','Random'};
 policy_2ndList = {'optimum','greedy','random'};
 
-%% Execute
 txPowerTot = [];
 rxSNRsum = [];
 for idxPolicy2 = 1:length(policy_2ndList)
@@ -87,8 +86,44 @@ for idxPolicy2 = 1:length(policy_2ndList)
 
         %% 1 stage: Antenna orientation (pre-stored channel)
         % To get the new channels, please run "CBG_parse_channels.m"
-        ws = load(sprintf('CHANNEL_%s_%s',environment,policy_1st),'H');
-        H = ws.H;
+        if strcmp(policy_1st,'DIRECT-minVar_2')
+            ws = load('CHANNEL_DIRECT_minVar_2-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'DIRECT-minVar_4')
+            ws = load('CHANNEL_DIRECT_minVar_4-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'DIRECT-minVar_8')
+            ws = load('CHANNEL_DIRECT_minVar_8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'DIRECT-rand_2')
+            ws = load('CHANNEL_DIRECT_rand_2-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'DIRECT-rand_4')
+            ws = load('CHANNEL_DIRECT_rand_4-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'random')
+            ws = load('CHANNEL_random_8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'PI_2')
+            ws = load('CHANNEL_PI_2-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'PI_4')
+            ws = load('CHANNEL_PI_4-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'UM_2')
+            ws = load('CHANNEL_UM_2-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'UM_4')
+            ws = load('CHANNEL_UM_4-8.mat');
+            H = ws.H;
+        elseif strcmp(policy_1st,'exhaustive')
+            ws = load('CHANNEL_exhaustive.mat');
+            H = ws.H;
+        else
+            error('Policy not expected');
+        end
+        
+        H = load(sprintf('CHANNEL_%s_%s_%s-%s',environment,policy_1st,num2str(config.minSamples),num2str(config.n_samples)),'H');
 
         %% 2 stage: Antenna selection
         [finalAssign,~,assignation] = CBG_antSel(H,SNRdemands,policy_2nd);
@@ -145,7 +180,7 @@ a(5).FaceColor = [229 229 229]./255;
 xlim([0.5 3.5]);
 pos = get(gcf, 'Position');
 set(gcf,'position',[pos(1),pos(2),677,235]);
-grid on;
+grid minor;
 
 groupLabels = policy_2ndList;
 stackData = rxSNRsum;
@@ -154,6 +189,7 @@ lg = legend(legends);
 set(lg,'FontSize',8);
 title(sprintf('%s',environment),'FontSize',12);
 ylabel('Overall SNR lost (linear)','FontSize',12);
+grid minor;
 % Modify colors
 a = findobj(gca,'type','bar');
 a(6).FaceColor = [0 104 255]./255;
@@ -165,4 +201,4 @@ a(5).FaceColor = [229 229 229]./255;
 xlim([0.5 3.5]);
 pos = get(gcf, 'Position');
 set(gcf,'position',[pos(1),pos(2),677,235]);
-grid on;
+grid minor;
